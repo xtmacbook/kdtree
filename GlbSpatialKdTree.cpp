@@ -42,7 +42,7 @@ Triangle::Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
 
 }
 
-bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)
+bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)const
 {
 
 	 double t, u, v;

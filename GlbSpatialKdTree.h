@@ -66,7 +66,7 @@ namespace GlbGlobe
 
 		Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2);
 
-		bool getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint);
+		bool getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)const;
 
 		BoundingBox bound;
 
@@ -186,6 +186,27 @@ namespace GlbGlobe
 		BoundingBox box;  //box 
 	};
 
+    struct StackElem
+    {
+        StackElem(){}
+        StackElem( const KDTNode* n,double aa,double bb):
+        node(n),a(aa),b(bb)
+        {}
+        const KDTNode * node;
+        double a;
+        double b;
+    };
+
+    struct StackElemA
+    {
+        StackElemA(){}
+
+        const KDTNode* node;//pointer to child
+        double t; // the entry /eixt signed distance
+        Vec3 pb; // entry / exit point;
+        int prev; // the pointer to the pre stack item
+    };
+
 	class GLbKdTree
 	{
 	public:
@@ -251,7 +272,13 @@ namespace GlbGlobe
          * Appenix B
         */
         bool RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP);
-        
+
+    /*
+     * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
+     * Appenix C
+     */
+        bool RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3&intersectionP);
+
     private:
 
 		bool     sahUse; //true: sah false :median space

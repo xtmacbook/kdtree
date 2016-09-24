@@ -6,6 +6,8 @@ extern const double INFINITYM;
 extern const double kdTreeEpsilon;
 static const double RayEpsilonOffset = 0.0001;
 
+
+
 //AABB
 static double get_enter_distance(const osg::BoundingBox &box, const GlbGlobe::Ray &r)
 {
@@ -20,7 +22,7 @@ static double get_enter_distance(const osg::BoundingBox &box, const GlbGlobe::Ra
 		else 
 			continue;
 
-		if (dist > enter_distance) //三个轴向最短距离
+		if (dist > enter_distance) //
 			enter_distance = dist;
 	}
 	return enter_distance;
@@ -133,16 +135,112 @@ bool GlbGlobe::GLbKdTree::RayTracer(const Ray&ray,Vec3&intersectionP)
 
 }
 
- bool GlbGlobe::GLbKdTree:: RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP)
+ bool GlbGlobe::GLbKdTree::RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP)
  {
-    double a = 0.0; //entry point signed distances
-    double b = 0.0; //exit point signed  distances
+    double A = 0.0; //entry point signed distances
+    double B = 0.0; //exit point signed  distances
 
     double t ; // signed distance to the splitting plane
 
-    a = get_enter_distance(node->box, ray);
-    b = get_exit_distance(node->box, ray);
+    if( !RayAABB(node->box._min, node->box._max, ray.origin, ray.direction, A, B))
+    {
+        return false;
+    }
 
-    return  true;
+    //stack to avoid recursive calls
+    StackElem stack[TERMINATION_CRITERIA_D_MAX];
+    int stackPtr = 0; /*pointer to the stack*/
+
+    //push the initial values onto the stack
+    
+    stack[stackPtr++] = StackElem(node,A,B);
+
+    KDTNode * farChild,*nearChild;
+    const KDTNode* currNode;
+
+    while (stackPtr != 0)
+    {
+        /*pop values from the stack*/
+        StackElem& ele = stack[--stackPtr];
+
+        currNode = ele.node;
+
+        while(!currNode->is_leaf())
+        {
+            A = ele.a;
+            B = ele.b;
+
+            const GlbGlobe::BoxEdge * splitting = currNode->splitEdge;
+            double diff = currNode->right->box._min[splitting->axis] - ray.origin[splitting->axis];
+
+            // the signed distance to splitting plane
+            t = diff / ray.direction[splitting->axis];
+
+            if(diff > 0.0)
+            {
+                nearChild = currNode->left;
+                farChild  = currNode->right;
+            }
+            else
+            {
+                nearChild = currNode->right;
+                farChild  = currNode->left;
+            }
+
+            if((t > B) || (t < 0.0))
+            {
+                currNode = nearChild;
+            }
+            else
+            {
+                if(t < A)
+                {
+                    currNode = farChild;
+                }
+                else
+                {
+                    stack[stackPtr++] = StackElem(farChild,t,B);
+                    currNode = nearChild;
+                    B = t;
+                }
+            }
+        }
+
+        //then is leaf
+        std::vector<int>& tris = *(currNode->triangleIndices);
+
+        for(unsigned int i = 0;i < tris.size();i++)
+        {
+            Triangle& tri = meshTriangles[tris[i]];
+
+            if(tri.getRayIntersection(ray.origin,ray.direction,intersectionP))
+            {
+                return true;
+            }
+        }
+
+    }
+
+    return  false;
 
  }
+
+ bool GlbGlobe::GLbKdTree::RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3&intersectionP)
+ {
+    double a,b;
+    double t;
+
+    if( !RayAABB(node->box._min, node->box._max, ray.origin, ray.direction, a, b))
+    {
+        return false;
+    }
+
+    StackElemA stack[TERMINATION_CRITERIA_D_MAX];
+
+    /*point to the far child node and current node*/
+    KDTNode * farChild,*currNode;
+    //currNode = node;
+
+
+ }
+
