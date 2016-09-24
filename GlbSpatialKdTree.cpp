@@ -3,11 +3,11 @@
 #include <limits>
 
 #include <osg/TriangleFunctor>
-#include "../comm/xMath.h"
+#include "../../comm/xMath.h"
 
 using namespace GlbGlobe;
 
-extern const double INFINITY = std::numeric_limits<double>::max();
+extern const double INFINITYM = std::numeric_limits<double>::max();
 extern const double kdTreeEpsilon = 1E-9;
 
 
@@ -19,9 +19,11 @@ extern const double kdTreeEpsilon = 1E-9;
 
 BoxEdge::BoxEdge()
 {
-	splitPlanePosition = INFINITY;
+	splitPlanePosition = INFINITYM;
 }
 
+Ray::Ray(const Ray&r)
+{ origin = r.origin; direction = r.direction; }
 
 Triangle::Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
 {
@@ -42,6 +44,7 @@ Triangle::Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
 
 bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)
 {
+
 	 double t, u, v;
 
 	if( RayTriangleIntersect(origin,dir,vertex[0],vertex[1],vertex[2],t,u,v))
@@ -74,8 +77,6 @@ KDTNode::KDTNode(void)
 	{
 		ropes[i] = NULL;
 	}
-#else
-	parent = NULL;
 #endif
 
 }
@@ -106,40 +107,6 @@ KDTNode::~KDTNode(void)
 		ropes[i] = NULL;
 	}
 #endif
-}
-
-
-const KDTNode* KDTNode::backtrack_leaf(const Vec3 &point)const
-{
-	if (box.contains(point,kdTreeEpsilon))
-	{
-		return find_leaf(point);		
-	}
-	else if (parent == NULL)
-	{
-		return NULL;
-	}
-	else
-	{
-		return parent->backtrack_leaf(point);
-	}
-}
-
-const KDTNode * KDTNode::find_leaf(const Vec3 &point)const
-{
-	//递归寻找最终的叶节点
-	if (is_leaf())
-	{
-		return this;
-	}
-	else if (point[splitEdge->axis] < splitEdge->splitPlanePosition)
-	{
-		return left->find_leaf(point);
-	}
-	else
-	{
-		return right->find_leaf(point);
-	}
 }
 
 KDTNodeM::KDTNodeM(void)
@@ -326,8 +293,8 @@ void GLbKdTree::expandBoundBox(const Vec3&v,Vec3&_max,Vec3&_min)
 BoundingBox GLbKdTree::computeTightFittingBoundingBox(unsigned int num_tris,unsigned int *tri_indices)
 {
 	// Compute bounding box for input mesh.
-	Vec3 _max = Vec3( -INFINITY, -INFINITY, -INFINITY );
-	Vec3 _min = Vec3( INFINITY, INFINITY, INFINITY );
+	Vec3 _max = Vec3( -INFINITYM, -INFINITYM, -INFINITYM );
+	Vec3 _min = Vec3( INFINITYM, INFINITYM, INFINITYM );
 
 	for ( unsigned int i = 0; i < num_tris; ++i )
 	{

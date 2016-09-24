@@ -2,8 +2,8 @@
 #include "GlbSpatialKdTree.h"
 
 using namespace GlbGlobe;
+///Users/glp/Documents/3Dirty/OpenSceneGraph-3.2.3/examples/osgpdf/kdtree/kdtree
 
-const unsigned int MAXDEPTH = 50;/* MAXDEPTH could be 50 */
 
 KDTNode* GLbKdTree::FindSingleNeighborLink(KDTNode *node, Faces face, KDTNode *rootNode)
 {
@@ -13,7 +13,7 @@ KDTNode* GLbKdTree::FindSingleNeighborLink(KDTNode *node, Faces face, KDTNode *r
 	return ["No neighbor link exists"];
 	*/
 	/* stack required for traversal to store far child nodes */
-	KDTNode *stack[MAXDEPTH]; 
+	KDTNode *stack[TERMINATION_CRITERIA_D_MAX]; 
 	
 	/* search starts from the root node */
 	unsigned int stackIndex = 0;
