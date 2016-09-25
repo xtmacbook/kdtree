@@ -168,7 +168,9 @@ namespace GlbGlobe
 
 		const KDTNodeM* backtrack_leaf(const Vec3 &point)const;
 		const KDTNodeM * find_leaf(const Vec3 &point)const ;
+        const bool isPointToLeftOfSplittingPlane(const Vec3&point)const;
 
+        KDTNodeM * getNeighboringNode(const Vec3&exitP)const;
 		struct KDTNodeM * left;
 		struct KDTNodeM * right;
 

@@ -9,7 +9,7 @@ using namespace GlbGlobe;
 
 extern const double INFINITYM = std::numeric_limits<double>::max();
 extern const double kdTreeEpsilon = 1E-9;
-
+extern const double KD_TREE_EPSILON;
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
 #define MAX3(a, b, c) MAX( MAX(a ,b) ,c)
@@ -180,6 +180,70 @@ const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 #else
     return NULL;
 #endif
+}
+
+const bool KDTNodeM::isPointToLeftOfSplittingPlane(const Vec3&p)const
+{
+    if ( splitEdge->axis == X_axis )
+    {
+        return ( p.x() < splitEdge->splitPlanePosition );
+    }
+    else if ( splitEdge->axis == Y_axis )
+    {
+        return ( p.y() < splitEdge->splitPlanePosition );
+    }
+    else if ( splitEdge->axis == Z_axis )
+    {
+        return ( p.z() < splitEdge->splitPlanePosition );
+    }
+    else
+    {
+        return false;
+    }
+}
+
+KDTNodeM* KDTNodeM::getNeighboringNode(const Vec3&p)const
+{
+    #ifdef KDTREE_NEIGHBORLINKS
+        // Check left face.
+    if ( fabs( p.x() - box._min.x() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FLeft];
+    }
+        // Check front face.
+    else if ( fabs( p.z() - box._max.z() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FFront];
+    }
+        // Check right face.
+    else if ( fabs( p.x() - box._max.x() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FRight];
+    }
+        // Check back face.
+    else if ( fabs( p.z() - box._min.z() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FBack];
+    }
+        // Check top face.
+    else if ( fabs( p.y() - box._max.y() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FTop];
+    }
+        // Check bottom face.
+    else if ( fabs( p.y() - box._min.y() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FBottom];
+    }
+        // p should be a point on one of the faces of this node's bounding box, but in this case, it isn't.
+    else
+    {
+       // std::cout << "ERROR: Node neighbor could not be returned." << std::endl;
+        return NULL;
+    }
+    #else
+    return NULL;
+    #endif
 }
 
 const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const

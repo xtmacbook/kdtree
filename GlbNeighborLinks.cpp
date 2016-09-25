@@ -332,8 +332,6 @@ KDTNode* GLbKdTree::CreateNeighborLinksTree(KDTNode *node, KDTNode *subtree, Fac
 	return currNode;
 }
 
-
-
 void GLbKdTree::BuildRopeStructure()
 {
     if(!sahUse)

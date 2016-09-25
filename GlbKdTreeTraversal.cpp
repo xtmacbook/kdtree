@@ -10,7 +10,7 @@ extern const double kdTreeEpsilon;
 extern const double KD_TREE_EPSILON = 0.000001;
 static const double RayEpsilonOffset = 0.0001;
 
-
+static const GlbGlobe::GLbKdTree * localKdTreePtr;
     //AABB
 static double get_enter_distance(const osg::BoundingBox &box, const GlbGlobe::Ray &r)
 {
@@ -122,6 +122,66 @@ static bool treeLeafTrace(const GlbGlobe::KDTNode*node,const GlbGlobe::Ray ray,
         }
     return (bestT != INFINITYM);
 }
+//template <typedef T>
+static bool stackLessNeighLink(GlbGlobe::KDTNodeM*node,const GlbGlobe::Ray& ray,
+                               double&t_entry,double&t_exit)
+{
+    bool intersection = false;
+
+    double t_entry_prev = - INFINITYM;
+
+    while(t_entry < t_exit && t_entry > t_entry_prev)
+    {
+        t_entry_prev = t_entry;
+
+        GlbGlobe::Vec3 p_entry = ray.origin + (ray.direction *  t_entry );
+
+        while(!node->is_leaf())
+        {
+            node = node->isPointToLeftOfSplittingPlane(p_entry)?node->left:node->right;
+        }
+        //the leaf
+        const unsigned int * trisIndices = node->tri_indices;
+
+        const GlbGlobe::Triangle * meshTris = localKdTreePtr->getMeshTriangles();
+
+        for(unsigned int i = 0; i < node->num_tris;i++)
+        {
+            const GlbGlobe::Triangle&tri = meshTris[trisIndices[i]];
+
+            double t,u,v;
+            if(RayTriangleIntersect(ray.origin, ray.direction, tri.vertex[0],
+                                        tri.vertex[1], tri.vertex[2], t, u, v))
+            {
+                if(t < t_exit)
+                {
+                    intersection = true;
+                    t_exit = t;
+                }
+            }
+        }
+
+        double tmp_t_near,tmp_t_far;
+        bool intersectsNodeBox = RayAABB(node->box._min, node->box._max, ray.origin, ray.direction, tmp_t_near, tmp_t_far);
+        if(intersectsNodeBox)
+        {
+            t_entry = tmp_t_far;
+        }
+        else
+        {
+            break;
+        }
+
+        GlbGlobe::Vec3 p_exit = ray.origin + (ray.direction * t_entry);
+        node = node->getNeighboringNode(p_exit);
+
+        if(node == NULL)
+        {
+            return false;
+        }
+    }
+}
+
 bool  GlbGlobe::GLbKdTree::RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3&intersectionP)
 {
 #ifndef KDTREE_NEIGHBORLINKS
@@ -172,47 +232,47 @@ bool  GlbGlobe::GLbKdTree::RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3
     #endif
 }
 
-bool GlbGlobe::GLbKdTree::RayTracer(const Ray&ray,Vec3&intersectionP)
+bool GlbGlobe::GLbKdTree::RayTracer(const Ray&r,Vec3&intersectionP)
 {
-#ifndef KDTREE_NEIGHBORLINKS
+    if(!sahUse)
     {
-    if(!treeRoot && !treeRootM ) return false;
-
-    if(sahUse)
-        {
-            return RayTravAlgRECA(treeRoot,ray,intersectionP);
-        }
-    else
-        {
-#if 1
         const BoundingBox& bound = treeRootM->box;
+        Ray ray(r);
 
-        Ray r(ray);
-
+        #if 0 // ok
         if(!bound.contains(ray.origin,kdTreeEpsilon))
-            {
+        {
             double enter_distance = get_enter_distance(bound, ray);
             double exit_distance  = get_exit_distance(bound, ray);
 
-            if (enter_distance > exit_distance)
-                return false;
-            else
-                r.origin = r.origin +  r.direction * (enter_distance + RayEpsilonOffset);
-            }
-
-        return RayTravAlgSEQ(treeRootM,r,intersectionP);
-#else
-         
-#endif
+            if (enter_distance > exit_distance) return false;
+            else ray.origin = ray.origin +  ray.direction * (enter_distance + RayEpsilonOffset);
         }
+        return RayTravAlgSEQ(treeRootM,ray,intersectionP);
+        #else
+        double t_near,t_far;
+        bool intersects_root_node_bounding_box = RayAABB(bound._min, bound._max,ray.origin ,ray.direction, t_near, t_far);
 
+        if ( intersects_root_node_bounding_box )
+        {
+            localKdTreePtr = this;
+            bool hit = stackLessNeighLink( treeRootM, ray, t_near, t_far );
+            if ( hit )
+            {
+                intersectionP = ray.origin  + ( ray.direction * t_far );
+            }
+            return hit;
+        }
+        else
+        {
+            return false;
+        }
+        #endif
     }
-#else
+    else
     {
-    return false;
-    }
-#endif
 
+    }
 }
 
 bool GlbGlobe::GLbKdTree::RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP)
