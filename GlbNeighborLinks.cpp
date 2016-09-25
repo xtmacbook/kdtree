@@ -169,6 +169,61 @@ static void optimizeRopes(T * ropes[],GlbGlobe::BoundingBox&box)
     }
 }
 
+template <typename T>
+static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
+{
+    if ( curr_node->is_leaf() )
+        {
+        for ( unsigned int i = 0; i < 6; ++i )
+            {
+            curr_node->ropes[i] = rs[i];
+            }
+        }
+    else
+        {
+            // Only optimize ropes on single ray case.
+            // It is not optimal to optimize on packet traversal case.
+        if ( is_single_ray_case )
+            {
+                optimizeRopes( rs, curr_node->box );
+            }
+
+        GlbGlobe::Faces SL, SR; //FLeft = 0x00, FRight, FFront, FBack, FBottom, FTop
+        if ( curr_node->splitEdge->axis == X_axis )
+            {
+            SL = FLeft;
+            SR = FRight;
+            }
+        else if ( curr_node->splitEdge->axis == Y_axis )
+            {
+            SL = FBottom;
+            SR = FTop;
+            }
+            // Split plane is Z_AXIS.
+        else
+            {
+            SL = FBack;
+            SR = FFront;
+            }
+
+        T* RS_left[6];
+        T* RS_right[6];
+        for ( unsigned int i = 0; i < 6; ++i )
+            {
+            RS_left[i] = rs[i];
+            RS_right[i] = rs[i];
+            }
+
+            // Recurse.
+        RS_left[SR] = curr_node->right;
+        buildRopeStructure( curr_node->left, RS_left, is_single_ray_case );
+
+            // Recurse.
+        RS_right[SL] = curr_node->left;
+        buildRopeStructure( curr_node->right, RS_right, is_single_ray_case );
+        }
+}
+
 
 KDTNode* GLbKdTree::FindSingleNeighborLink(KDTNode *node, Faces face, KDTNode *rootNode)
 {
@@ -277,60 +332,7 @@ KDTNode* GLbKdTree::CreateNeighborLinksTree(KDTNode *node, KDTNode *subtree, Fac
 	return currNode;
 }
 
-template <typename T>
-void GLbKdTree::buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
-{
-    if ( curr_node->is_leaf() )
-    {
-        for ( unsigned int i = 0; i < 6; ++i )
-        {
-            curr_node->ropes[i] = rs[i];
-        }
-    }
-    else
-    {
-        // Only optimize ropes on single ray case.
-        // It is not optimal to optimize on packet traversal case.
-        if ( is_single_ray_case )
-        {
-            optimizeRopes( rs, curr_node->box );
-        }
 
-        Faces SL, SR; //FLeft = 0x00, FRight, FFront, FBack, FBottom, FTop
-        if ( curr_node->splitEdge->axis == X_axis )
-        {
-            SL = FLeft;
-            SR = FRight;
-        }
-        else if ( curr_node->splitEdge->axis == Y_axis )
-        {
-            SL = FBottom;
-            SR = FTop;
-        }
-            // Split plane is Z_AXIS.
-        else
-        {
-            SL = FBack;
-            SR = FFront;
-        }
-
-        KDTNodeM* RS_left[6];
-        KDTNodeM* RS_right[6];
-        for ( unsigned int i = 0; i < 6; ++i )
-        {
-            RS_left[i] = rs[i];
-            RS_right[i] = rs[i];
-        }
-
-            // Recurse.
-        RS_left[SR] = curr_node->right;
-        buildRopeStructure( curr_node->left, RS_left, is_single_ray_case );
-        
-            // Recurse.
-        RS_right[SL] = curr_node->left;
-        buildRopeStructure( curr_node->right, RS_right, is_single_ray_case );
-    }
-}
 
 void GLbKdTree::BuildRopeStructure()
 {

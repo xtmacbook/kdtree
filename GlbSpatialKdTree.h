@@ -274,9 +274,6 @@ namespace GlbGlobe
 		KDTNode * buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdge& boxEdgeList,
 				int maxDepth);
 
-        template <typename T>
-        void buildRopeStructure(T *curr_node, T *ropes[], bool is_single_ray_case);
-
         /* Sequential ray traversal algorithm
          * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
          * Appenix A
