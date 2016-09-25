@@ -26,7 +26,7 @@
 #define TERMINATION_CRITERIA_D_MAX 3
 #define TERMINATION_CRITERIA_N_MAX 100
 
-//#define KDTREE_NEIGHBORLINKS
+#define KDTREE_NEIGHBORLINKS
 #define KDTREE_SAH_CONSTRUCT
 
 
@@ -173,7 +173,7 @@ namespace GlbGlobe
 		struct KDTNodeM * right;
 
 #ifdef KDTREE_NEIGHBORLINKS
-		struct KDTNode* ropes[6];
+		struct KDTNodeM* ropes[6];
 #else
 		struct KDTNodeM * parent;
 #endif // KDTREE_NEIGHBORLINKS
@@ -222,7 +222,7 @@ namespace GlbGlobe
 	{
 	public:
 
-		GLbKdTree(bool constructType);
+		GLbKdTree(bool constructType,bool r);
 
 		~GLbKdTree(void);
 
@@ -268,11 +268,14 @@ namespace GlbGlobe
 		BoundingBox computeTightFittingBoundingBox( unsigned int num_tris,unsigned int *tri_indices );
 		void expandBoundBox(const Vec3&v,Vec3&max,Vec3&min);
 
-		KDTNodeM* ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigned int *tri_indices,
+		KDTNodeM* constructTreeMedianSpaceSplit(unsigned int num_tris,unsigned int *tri_indices,
 			const BoundingBox& bounds,unsigned int curr_depth,KDTNodeM*parent);
 
 		KDTNode * buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdge& boxEdgeList,
 				int maxDepth);
+
+        template <typename T>
+        void buildRopeStructure(T *curr_node, T *ropes[], bool is_single_ray_case);
 
         /* Sequential ray traversal algorithm
          * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
@@ -296,7 +299,7 @@ namespace GlbGlobe
     private:
 
 		bool     sahUse; //true: sah false :median space
-
+        bool     rope;
 		KDTNode  *          treeRoot;
 		KDTNodeM *          treeRootM;
 

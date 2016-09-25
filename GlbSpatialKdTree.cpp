@@ -164,6 +164,7 @@ KDTNodeM::~KDTNodeM(void)
 
 const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 {
+#ifndef KDTREE_NEIGHBORLINKS
 	if (box.contains(point,kdTreeEpsilon))
 	{
 		return find_leaf(point);		
@@ -176,6 +177,9 @@ const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 	{
 		return parent->backtrack_leaf(point);
 	}
+#else
+    return NULL;
+#endif
 }
 
 const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const
@@ -195,7 +199,7 @@ const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const
 	}
 }
 
-GLbKdTree::GLbKdTree(bool t):sahUse(t)
+GLbKdTree::GLbKdTree(bool t,bool r):sahUse(t),rope(r)
 {
 	treeRoot =  NULL;
 	treeRootM = NULL;

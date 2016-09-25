@@ -16,22 +16,24 @@ bool GlbGlobe::GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBo
 	else
 	{
 		treeRootM = ConstructTreeMedianSpaceSplit(num_tris,bounds);
+
+        if(rope)
+        {
+            BuildRopeStructure();
+        }
 	}
 	return true;
 }
 
-KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigned int *tri_indices,
+KDTNodeM* GLbKdTree::constructTreeMedianSpaceSplit(unsigned int num_tris,unsigned int *tri_indices,
 	const BoundingBox& bounds, unsigned int curr_depth,KDTNodeM*parent)
 {
 
 	KDTNodeM * currentNode = new KDTNodeM();
 
 #ifndef KDTREE_NEIGHBORLINKS 
-
+    currentNode->parent = parent;
 #endif
-
-	currentNode->parent = parent;
-
 	currentNode->num_tris = num_tris;
 
 	if ( USE_TIGHT_FITTING_BOUNDING_BOXES ) 
@@ -175,8 +177,8 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 	delete[] tri_indices;
 	tri_indices = NULL;
 	//
-	currentNode->left = ConstructTreeMedianSpaceSplit( left_tri_count, left_tri_indices, left_bbox, curr_depth + 1,currentNode );
-	currentNode->right = ConstructTreeMedianSpaceSplit( right_tri_count, right_tri_indices, right_bbox, curr_depth + 1 ,currentNode);
+	currentNode->left = constructTreeMedianSpaceSplit( left_tri_count, left_tri_indices, left_bbox, curr_depth + 1,currentNode );
+	currentNode->right = constructTreeMedianSpaceSplit( right_tri_count, right_tri_indices, right_bbox, curr_depth + 1 ,currentNode);
 
 
 	return currentNode;
@@ -192,7 +194,7 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,
 		tris_indics[i] = i;
 	}
 
-	treeRootM =  ConstructTreeMedianSpaceSplit(num_tris,tris_indics,bounds,0,NULL);
+	treeRootM =  constructTreeMedianSpaceSplit(num_tris,tris_indics,bounds,0,NULL);
 
 	return treeRootM;
 }

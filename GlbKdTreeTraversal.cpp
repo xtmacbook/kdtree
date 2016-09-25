@@ -7,6 +7,7 @@
 #include <iostream.h>
 extern const double INFINITYM;
 extern const double kdTreeEpsilon;
+extern const double KD_TREE_EPSILON = 0.000001;
 static const double RayEpsilonOffset = 0.0001;
 
 
@@ -123,6 +124,7 @@ static bool treeLeafTrace(const GlbGlobe::KDTNode*node,const GlbGlobe::Ray ray,
 }
 bool  GlbGlobe::GLbKdTree::RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3&intersectionP)
 {
+#ifndef KDTREE_NEIGHBORLINKS
     if(!node->is_leaf())
         {
         const KDTNodeM * leaf = node->backtrack_leaf(ray.origin);
@@ -164,7 +166,10 @@ bool  GlbGlobe::GLbKdTree::RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3
         r.origin = r.origin +  r.direction * (exit_distance + RayEpsilonOffset) ;
 
         return RayTravAlgSEQ(node->parent,r,intersectionP);
-        }
+    }
+    #else
+    return NULL;
+    #endif
 }
 
 bool GlbGlobe::GLbKdTree::RayTracer(const Ray&ray,Vec3&intersectionP)
@@ -179,7 +184,7 @@ bool GlbGlobe::GLbKdTree::RayTracer(const Ray&ray,Vec3&intersectionP)
         }
     else
         {
-#if 0
+#if 1
         const BoundingBox& bound = treeRootM->box;
 
         Ray r(ray);
@@ -195,7 +200,7 @@ bool GlbGlobe::GLbKdTree::RayTracer(const Ray&ray,Vec3&intersectionP)
                 r.origin = r.origin +  r.direction * (enter_distance + RayEpsilonOffset);
             }
 
-        RayTravAlgSEQ(treeRootM,r,intersectionP);
+        return RayTravAlgSEQ(treeRootM,r,intersectionP);
 #else
          
 #endif
