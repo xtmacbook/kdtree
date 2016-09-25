@@ -23,7 +23,7 @@
 
 #include "GlbSAH.h"
 
-#define TERMINATION_CRITERIA_D_MAX 16
+#define TERMINATION_CRITERIA_D_MAX 3
 #define TERMINATION_CRITERIA_N_MAX 100
 
 //#define KDTREE_NEIGHBORLINKS
@@ -50,7 +50,7 @@ namespace GlbGlobe
 	//splitting plane Axes
 	enum Axes
 	{
-		X_axis = 0, Y_axis, Z_axis, No_axis
+		X_axis = 0, Y_axis, Z_axis
 	};
 
 	//splitting plane Faces
@@ -197,6 +197,17 @@ namespace GlbGlobe
         double b;
     };
 
+    struct StackElemM
+    {
+    StackElemM(){}
+    StackElemM( const KDTNodeM* n,double aa,double bb):
+    node(n),a(aa),b(bb)
+    {}
+    const KDTNodeM * node;
+    double a;
+    double b;
+    };
+
     struct StackElemA
     {
         StackElemA(){}
@@ -222,6 +233,7 @@ namespace GlbGlobe
 		/* ray tracer */
 		bool RayTracer(const Ray&ray,Vec3&intersectionP);
 
+        const Triangle * getMeshTriangles(void)const;
 	protected:
 
 		/*
@@ -272,7 +284,9 @@ namespace GlbGlobe
          * Appenix B
         */
         bool RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP);
+        bool RayTravAlgRECA(const KDTNodeM* node,const Ray& ray,Vec3&intersectionP);
 
+       
     /*
      * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
      * Appenix C

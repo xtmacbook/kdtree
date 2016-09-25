@@ -59,7 +59,6 @@ KDTNode* GLbKdTree::CreateNeighborLinksTree(KDTNode *node, KDTNode *subtree, Fac
 
 	while(!currNode->is_leaf())
 	{
-		/* 当前节点是内部节点，遍历子节点 */
 		if(currNode->splitEdge->axis /*is perpendicular to face*/)
 		{
 			if (/*node->box[face] is to the left of currNode->splitPlane*/1)

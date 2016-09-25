@@ -218,7 +218,10 @@ GlbGlobe::GLbKdTree::~GLbKdTree(void )
 }
 
 
-
+const Triangle * GlbGlobe::GLbKdTree::getMeshTriangles(void)const
+{
+    return meshTriangles;
+}
 std::vector<Triangle> triangles;
 
 struct TriangleIntersector
