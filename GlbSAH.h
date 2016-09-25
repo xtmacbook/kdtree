@@ -51,6 +51,10 @@ namespace GlbGlobe
 		const double m_emptyBonus;  // takes value between 0 and 1
 		// closer to 1 => encourage empty space splitting
 		// closer to 0 => discourage
+
+        //SURFACE AREA OF BOX
+        static double SA(const osg::BoundingBox&V);
+        static double P_Vsub(const osg::BoundingBox&Vsub,const osg::BoundingBox&V);
 	};
 
 }

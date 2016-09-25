@@ -13,7 +13,20 @@ using namespace GlbGlobe;
 #undef max
 #endif
 
-GlbSAH::GlbSAH(double Ct, double Ci, double emptyBonus) 
+double GlbSAH::SA(const osg::BoundingBox&V)
+{
+
+    return  2 * (V._max - V._min).x() * (V._max - V._min).y()
+            + 2 * (V._max - V._min).x() * (V._max - V._min).z()
+            + 2 * (V._max - V._min).y() * (V._max - V._min).z();
+}
+
+double GlbSAH::P_Vsub(const osg::BoundingBox&Vsub,const osg::BoundingBox&V)
+{
+    return SA(Vsub)/SA(V);
+}
+
+GlbSAH::GlbSAH(double Ct, double Ci, double emptyBonus)
   : m_Ct(Ct), m_Ci(Ci), m_emptyBonus(emptyBonus) {}
 
 double GlbSAH::calculateSAH(const osg::BoundingBox &nodeExtent, char axis,
@@ -33,7 +46,9 @@ double GlbSAH::calculateSAH(const osg::BoundingBox &nodeExtent, char axis,
 
     double oneOverTotalSurfaceArea = 0.5f /
       (delta[0]*delta[1] + delta[1]*delta[2] + delta[2]*delta[0]);
+
     int otherAxis[2] = { (axis+1)%3 , (axis+2)%3 };
+
     double crossSectionArea = delta[otherAxis[0]]*delta[otherAxis[1]];
     
     if (nA == 0 && position > nodeExtent._min[axis]) 
