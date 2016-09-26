@@ -74,17 +74,19 @@ bool  GlbGlobe::GLbKdTree::GetIntersecting(const KDTNode*node, const Vec3&origin
 
 		/* no intersection found */
 		double exit_distance = get_exit_distance(node->box, ray);
-		ray.origin = ray.origin +  ray.direction * (exit_distance + kdTreeEpsilon) ;
+		ray.origin = ray.origin +  ray.direction * (exit_distance + 0.00001) ;
 
 		return GetIntersecting(node->parent,ray.origin,ray.direction,intersectionP);
 	}
 }
 
-static unsigned int Test = 0;
+static unsigned int Test = 0;//test
 
 bool  GlbGlobe::GLbKdTree::GetIntersectingM(const KDTNodeM*node, const Vec3&origin ,const Vec3&dir,Vec3&intersectionP)
 {
-	Test++;
+	Test++; //test
+	unsigned int nowLeve = node->leve; //test
+
 	if(!node->is_leaf())
 	{
 		const KDTNodeM * leaf = node->backtrack_leaf(origin);
@@ -112,7 +114,7 @@ bool  GlbGlobe::GLbKdTree::GetIntersectingM(const KDTNodeM*node, const Vec3&orig
 
 		/* no intersection found */
 		double exit_distance = get_exit_distance(node->box, ray);
-		ray.origin = ray.origin +  ray.direction * (exit_distance + kdTreeEpsilon) ;
+		ray.origin = ray.origin +  ray.direction * (exit_distance + 0.00001) ;
 
 		return GetIntersectingM(node->parent,ray.origin,ray.direction,intersectionP);
 	}

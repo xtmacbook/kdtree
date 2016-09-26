@@ -183,6 +183,9 @@ namespace GlbGlobe
 		unsigned int num_tris;     //内部三角形
 		unsigned int *tri_indices;  //三角形索引
 
+		//test
+		unsigned int leve;
+
 		BoundingBox box;  //box 
 	};
 

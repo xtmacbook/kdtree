@@ -27,6 +27,8 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 {
 	//创建新的节点
 	KDTNodeM * currentNode = new KDTNodeM();
+	//test
+	currentNode->leve = curr_depth;
 
 #ifndef KDTREE_NEIGHBORLINKS 
 	 currentNode->parent = parent;
