@@ -44,72 +44,6 @@ static double get_exit_distance(const osg::BoundingBox &box, const GlbGlobe::Ray
 	return exit_distance;
 }
 
-
-static bool treeLeafTrace(const GlbGlobe::KDTNodeM*node,const GlbGlobe::Ray ray,GlbGlobe::Vec3&intersectionP)
-{
-	const unsigned int *trIndices = node->tri_indices;
-
-	double bestT = KDTREEDOUBLEINFINITYM;
-
-	const GlbGlobe::Triangle * meshTriangles = localKdTreePtr->getMeshTriangles();
-
-	for (unsigned int i = 0; i < node->num_tris; i++)
-	{
-
-		const  GlbGlobe::Triangle &tri = meshTriangles[trIndices[i]];
-
-		double t = -1.0;
-		double u = 0.0;
-		double v = 0.0;
-
-		if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],tri.vertex[1],
-			tri.vertex[2],t,u,v))
-		{
-			if(t < bestT)
-			{
-				bestT = t;
-				intersectionP =   tri.vertex[0] * (1 - u - v) +
-					tri.vertex[1] * u+
-					tri.vertex[2] * v;
-			}
-		}
-	}
-
-	return (bestT !=  KDTREEDOUBLEINFINITYM);
-
-}
-
-static bool treeLeafTrace(const GlbGlobe::KDTNode*node,const GlbGlobe::Ray ray,
-	const GlbGlobe::GLbKdTree*tree,GlbGlobe::Vec3&intersectionP)
-{
-	std::vector<int>& tris = *(node->triangleIndices);
-
-	double bestT = KDTREEDOUBLEINFINITYM;
-
-	const GlbGlobe::Triangle * meshTriangles = tree->getMeshTriangles();
-
-	for(unsigned int i = 0;i < tris.size();i++)
-	{
-		double t = 0.0,u = 0.0,v = 0.0;
-
-		const GlbGlobe::Triangle& tri = meshTriangles[tris[i]];
-
-		if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],
-			tri.vertex[1],tri.vertex[2],t,u,v))
-		{
-			if(t < bestT)
-			{
-				bestT = t;
-				intersectionP =   tri.vertex[0] * (1 - u - v) +
-					tri.vertex[1] * u+
-					tri.vertex[2] * v;
-			}
-		}
-
-	}
-	return (bestT !=  KDTREEDOUBLEINFINITYM);
-}
-
 //定位包含该点的叶子节点,每次都从根节点开始
 //template<typename T>
 static const GlbGlobe::KDTNodeM* LocateLeaf(const const GlbGlobe::KDTNodeM* node,const GlbGlobe::Vec3&point)
@@ -138,8 +72,7 @@ static const GlbGlobe::KDTNodeM* LocateLeaf(const const GlbGlobe::KDTNodeM* node
 }
 
 //template <typedef T>
-static bool stackLessNeighLink(GlbGlobe::KDTNodeM*node,const GlbGlobe::Ray& ray,
-	double&t_entry,double&t_exit)
+static bool stackLessNeighLink(GlbGlobe::KDTNodeM*node,const GlbGlobe::Ray& ray,double&t_entry,double&t_exit)
 {
 	bool intersection = false;
 
@@ -200,7 +133,6 @@ static bool stackLessNeighLink(GlbGlobe::KDTNodeM*node,const GlbGlobe::Ray& ray,
 
 /* Sequential ray traversal algorithm
 * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
-* Appenix A
 */
 
 template <typename T>
@@ -236,7 +168,7 @@ static bool RayTravAlgSEQ(const T*rootNode, const GlbGlobe::Ray&ray,GlbGlobe::Ve
 		if(RayAABB(currentNode->box._min,currentNode->box._max,ray.origin,
 			ray.direction,a,b))
 		{
-			if(treeLeafTrace(currentNode,ray,intersectionP))
+			if(currentNode->treeLeafTrace(ray,intersectionP))
 				return true;
 		}
 		point = ray.origin + ray.direction * (b + 0.0001);
@@ -406,69 +338,74 @@ static bool RayTravAlgRECA(const GlbGlobe::KDTNodeM* node,const GlbGlobe::Ray& r
 
 }
 
-bool GlbGlobe::GLbKdTree::RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3&intersectionP)
+/*
+* Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
+*/
+/*只是依靠进入点、出点和splitting plane位置判断当前点位置*/
+template <typename T>
+static bool RayTravAlgRECB(const T * node,const GlbGlobe::Ray&ray,GlbGlobe::Vec3&intersectionP)
 {
-	double a,b;
+	double A = 0.0; //进入AABB的进入点距离(有效距离 包括负值)
+	double B = 0.0; //出AABB的点距离(有效距离 包括负值)
+
 	double t;
 
-	if( !RayAABB(node->box._min, node->box._max, ray.origin, ray.direction, a, b))
+	if( !RayAABB(node->box._min, node->box._max, ray.origin, ray.direction, A, B))
 	{
 		return false;
 	}
 
-	StackElemA stack[TERMINATION_CRITERIA_D_MAX];
+	GlbGlobe::StackElemA<T> stack[TERMINATION_CRITERIA_D_MAX];
 
-	/*point to the far child node and current node*/
-	KDTNode * farChild;
-	const KDTNode *currNode;
+	/*指向当前和远处的节点*/
+	T * farChild;
+	const T *currNode = node;
 
-	currNode = node;
+	int enPt = 0; /*进入点堆栈指针*/
+	stack[enPt].t = A;
 
-	int enPt = 0; /*setup initial entry point*/
-	stack[enPt].t = a;
-
-	if(a >= 0.0)/*a ray with external origin*/
+	if(A >= 0.0)/*射线原点在AABB外部*/
 	{
-		stack[enPt].pb = ray.origin + ray.direction * a;
+		stack[enPt].pb = ray.origin + ray.direction * A;
 	}
-	else /*a ray with internal origin*/
+	else /*射线原点在AABB内部*/
 	{
 		stack[enPt].pb = ray.origin;
 	}
 
-	/*setup initial exit point in the stack*/
-
+	/*将初始化的出点放入堆栈*/
 	int exPt = 1;
-	stack[exPt].t = b;
-	stack[exPt].pb = ray.origin + ray.direction * b;
+	stack[exPt].t = B;
+	stack[exPt].pb = ray.origin + ray.direction * B;
 	stack[exPt].node = NULL;
 
-	while(true)
+	while(currNode && currNode != NULL)
 	{
-		/*loop until a leaf is found*/
+		/*循环到叶子*/
 		while(!currNode->is_leaf())
 		{
 			double splitVal = currNode->splitEdge->splitPlanePosition;
-			Axes axis = currNode->splitEdge->axis;
+			GlbGlobe::Axes axis = currNode->splitEdge->axis;
 
 			//nextAxis: x->y y->z z->x
 			//preAxis : x->z y->x z->y
-
-			Axes nextAxis = (Axes)(((int)axis + 1) % 3);
-			Axes preAxis  = (axis == X_axis)? Z_axis:((axis == Y_axis)?Z_axis:Y_axis);
+			GlbGlobe::Axes nextAxis = (GlbGlobe::Axes)(((int)axis + 1) % 3);
+			GlbGlobe::Axes preAxis  = (axis == GlbGlobe::X_axis)? GlbGlobe::Z_axis:((axis == GlbGlobe::Y_axis)?
+							GlbGlobe::Z_axis:GlbGlobe::Y_axis);
 
 			if(stack[enPt].pb[axis] <= splitVal)
 			{
-				if(stack[enPt].pb[axis] <= splitVal)
+				if(stack[exPt].pb[axis] <= splitVal)
 				{
 					currNode = currNode->left;
 					continue;
 				}
-				if(stack[exPt].pb[axis] == splitVal)
+				if(stack[exPt].pb[axis] > splitVal)
 				{
 					currNode = currNode->right;
 					continue;
 				}
+
 				farChild = currNode->right;
 				currNode = currNode->left;
 			}
@@ -479,13 +416,14 @@ bool GlbGlobe::GLbKdTree::RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3
 					currNode = currNode->right;
 					continue;
 				}
+
 				farChild = currNode->left;
 				currNode = currNode->right;
 			}
 
 			t = (splitVal - ray.origin[axis]) / ray.direction[axis];
 
-			/*setup the exit point*/
+			/*设置出点*/
 			int tmp = exPt;
 			exPt++;
 
@@ -494,20 +432,21 @@ bool GlbGlobe::GLbKdTree::RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3
 				exPt++;
 			}
 
-			//push values onto the stack
+			//将farChild放入堆栈,继续遍历currentNode(nearChild)
 			stack[exPt].prev = tmp;
 			stack[exPt].t = t;
 			stack[exPt].node = farChild;
 			stack[exPt].pb[axis] = splitVal;
 			stack[exPt].pb[nextAxis] = ray.origin[nextAxis] + t * ray.direction[nextAxis];
-			stack[exPt].pb[preAxis] = ray.origin[preAxis] + t * ray.direction[preAxis];
+			stack[exPt].pb[preAxis]  = ray.origin[preAxis]  + t * ray.direction[preAxis];
 
 		}
-		//then the leaf
 
-		if(/*any intersection*/1)
+		//叶子
+		if(currNode->is_leaf())
 		{
-			return true;
+			if( currNode->treeLeafTrace(ray,intersectionP,localKdTreePtr))
+				return true;
 		}
 
 		//pop from the stack
@@ -568,6 +507,10 @@ bool GlbGlobe::GLbKdTree::RayTracer(const Ray&r,Vec3&intersectionP)
 		localKdTreePtr = this;
 		return RayTravAlgRECA(treeRootM,ray,intersectionP);
 #endif
+#if 1
+		localKdTreePtr = this;
+		RayTravAlgRECB(treeRootM,ray,intersectionP);
+#endif
 	}
 	else
 	{
@@ -576,114 +519,3 @@ bool GlbGlobe::GLbKdTree::RayTracer(const Ray&r,Vec3&intersectionP)
 
 	return false;
 }
-
-//template <typedef T>
-//bool GlbGlobe::GLbKdTree::RayTravAlgRECA(const T* node,const Ray& ray,Vec3&intersectionP)
-//{
-//    double A = 0.0; //entry point signed distances
-//    double B = 0.0; //exit point signed  distances
-//
-//    double t ; // signed distance to the splitting plane
-//
-//    if( !RayAABB(node->box._min, node->box._max, ray.origin, ray.direction, A, B))
-//    {
-//        return false;
-//    }
-//
-//        //stack to avoid recursive calls
-//    StackElem<T> stack[TERMINATION_CRITERIA_D_MAX];
-//    int stackPtr = 0; /*pointer to the stack*/
-//
-//    stack[stackPtr++] = StackElem<T>(node,A,B);
-//
-//    T * farChild,*nearChild;
-//    const T* currNode;
-//
-//    while (stackPtr != 0)
-//        {
-//        /*pop values from the stack*/
-//        StackElem<T>& ele = stack[--stackPtr];
-//
-//        currNode = ele.node;
-//
-//        while(!currNode->is_leaf())
-//            {
-//            A = ele.a;
-//            B = ele.b;
-//
-//            const GlbGlobe::BoxEdge * splitting = currNode->splitEdge;
-//            double diff = currNode->right->box._min[splitting->axis] - ray.origin[splitting->axis];
-//
-//                // the signed distance to splitting plane
-//            t = diff / ray.direction[splitting->axis];
-//
-//            if(diff > 0.0)
-//                {
-//                nearChild = currNode->left;
-//                farChild  = currNode->right;
-//                }
-//            else
-//                {
-//                nearChild = currNode->right;
-//                farChild  = currNode->left;
-//                }
-//
-//            if((t > B) || (t < 0.0))
-//                {
-//                currNode = nearChild;
-//                }
-//            else
-//                {
-//                if(t < A)
-//                    {
-//                    currNode = farChild;
-//                    }
-//                else
-//                    {
-//                    stack[stackPtr++] = StackElem(farChild,t,B);
-//                    currNode = nearChild;
-//                    B = t;
-//                    }
-//                }
-//            }
-//
-//            //then is leaf
-//        std::vector<int>& tris = *(currNode->triangleIndices);
-//        double bestT = KDTREEDOUBLEINFINITYM;
-//
-//        for(unsigned int i = 0;i < tris.size();i++)
-//            {
-//            double t = 0.0,u = 0.0,v = 0.0;
-//
-//            Triangle& tri = meshTriangles[tris[i]];
-//
-//            if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],tri.vertex[1],tri.vertex[2],t,u,v))
-//                {
-//                if(t < bestT)
-//                    {
-//                    bestT = t;
-//                    intersectionP =   tri.vertex[0] * (1 - u - v) +
-//                    tri.vertex[1] * u+
-//                    tri.vertex[2] * v;
-//                    }
-//                }
-//
-//            }
-//        if(bestT != KDTREEDOUBLEINFINITYM)
-//            {
-//            return true;
-//            }
-//        }
-//
-//    return  false;
-//
-//}
-
-/*
-* Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
-* Appenix B
-*/
-
-
-
-

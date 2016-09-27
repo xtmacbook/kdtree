@@ -37,6 +37,7 @@ const double   RAY_EPSILON_OFFSET				= 0.0001;
 namespace GlbGlobe
 {
 	struct BoxEdge;
+	class GLbKdTree;
 
 	typedef osg::Vec3d Vec3;
 	typedef osg::BoundingBoxd BoundingBox;
@@ -123,6 +124,18 @@ namespace GlbGlobe
 		friend std::ostream &operator<<(std::ostream &o, const BoxEdge *edge);
 	};
 
+	struct Ray
+	{
+		Ray(const Ray&r);
+
+		Ray(Vec3 orig, Vec3 dir):origin(orig),direction(dir)
+		{ }
+
+		Vec3 origin;
+		Vec3 direction;
+
+	};
+
 	struct KDTNode
 	{
 
@@ -132,6 +145,8 @@ namespace GlbGlobe
 
 		//bool is_root()const;
 		inline bool is_leaf()const {return (left == NULL);}
+
+		bool treeLeafTrace(const Ray ray,Vec3&intersectionP,const GLbKdTree*tree);
 
 		struct KDTNode * left;
 		struct KDTNode * right;
@@ -149,17 +164,6 @@ namespace GlbGlobe
 
 	};
 
-	struct Ray
-	{
-		Ray(const Ray&r);
-
-		Ray(Vec3 orig, Vec3 dir):origin(orig),direction(dir)
-		{ }
-
-		Vec3 origin;
-		Vec3 direction;
-
-	};
 	struct KDTNodeM
 	{
 
@@ -175,6 +179,9 @@ namespace GlbGlobe
 		const bool isPointToLeftOfSplittingPlane(const Vec3&point)const;
 
 		KDTNodeM * getNeighboringNode(const Vec3&exitP)const;
+
+		bool treeLeafTrace(const Ray ray,Vec3&intersectionP,const GLbKdTree*localKdTreePtr)const;
+
 		struct KDTNodeM * left;
 		struct KDTNodeM * right;
 
@@ -204,13 +211,14 @@ namespace GlbGlobe
 		double b;
 	};
 
+	template <typename T>
 	struct StackElemA
 	{
 		StackElemA(){}
 
-		const KDTNode* node;//pointer to child
-		double t; // the entry /eixt signed distance
-		Vec3 pb; // entry / exit point;
+		const T* node;//指向子节点
+		double t; //  进 /出 有效距离
+		Vec3 pb;  // 进 / 出 点;
 		int prev; // the pointer to the pre stack item
 	};
 
@@ -244,7 +252,6 @@ namespace GlbGlobe
 		*/
 		KDTNode* ConstructTreeSAHSplit(unsigned int num_tris,const BoundingBox& bounds);	
 
-
 		//////////////////////////////////////////////////////////////////////////
 		//neighbor links
 
@@ -272,12 +279,7 @@ namespace GlbGlobe
 
 		KDTNode * buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdge& boxEdgeList,
 			int maxDepth);
-		/*
-		* Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
-		* Appenix C
-		*/
-		bool RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3&intersectionP);
-
+		
 	private:
 
 		bool     sahUse; //true: sah false :median space

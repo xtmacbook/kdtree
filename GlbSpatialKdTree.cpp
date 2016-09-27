@@ -103,6 +103,35 @@ KDTNode::~KDTNode(void)
 #endif
 }
 
+bool KDTNode::treeLeafTrace(const Ray ray,Vec3&intersectionP,const GLbKdTree*tree)
+{
+	double bestT = KDTREEDOUBLEINFINITYM;
+
+	const GlbGlobe::Triangle * meshTriangles = tree->getMeshTriangles();
+
+	for(unsigned int i = 0;i < triangleIndices->size();i++)
+	{
+		double t = 0.0,u = 0.0,v = 0.0;
+
+		const GlbGlobe::Triangle& tri = meshTriangles[(*triangleIndices)[i]];
+
+		if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],
+			tri.vertex[1],tri.vertex[2],t,u,v))
+		{
+			if(t < bestT)
+			{
+				bestT = t;
+				intersectionP =   tri.vertex[0] * (1 - u - v) +
+					tri.vertex[1] * u+
+					tri.vertex[2] * v;
+			}
+		}
+
+	}
+	return (bestT !=  KDTREEDOUBLEINFINITYM);
+}
+
+
 KDTNodeM::KDTNodeM(void)
 {
 	left = NULL;
@@ -154,6 +183,39 @@ KDTNodeM::~KDTNodeM(void)
 		delete [] tri_indices;
 		tri_indices = NULL;
 	}
+}
+
+bool KDTNodeM::treeLeafTrace(const Ray ray,Vec3&intersectionP,const GLbKdTree*localKdTreePtr)const
+{
+
+	double bestT = KDTREEDOUBLEINFINITYM;
+
+	const GlbGlobe::Triangle * meshTriangles = localKdTreePtr->getMeshTriangles();
+
+	for (unsigned int i = 0; i < num_tris; i++)
+	{
+
+		const  GlbGlobe::Triangle &tri = meshTriangles[tri_indices[i]];
+
+		double t = -1.0;
+		double u = 0.0;
+		double v = 0.0;
+
+		if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],tri.vertex[1],
+			tri.vertex[2],t,u,v))
+		{
+			if(t < bestT)
+			{
+				bestT = t;
+				intersectionP =   tri.vertex[0] * (1 - u - v) +
+					tri.vertex[1] * u+
+					tri.vertex[2] * v;
+			}
+		}
+	}
+
+	return (bestT !=  KDTREEDOUBLEINFINITYM);
+
 }
 
 const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
