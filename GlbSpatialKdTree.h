@@ -23,17 +23,10 @@
 
 #include "GlbSAH.h"
 
-<<<<<<< HEAD
 #define TERMINATION_CRITERIA_D_MAX 16
 #define TERMINATION_CRITERIA_N_MAX 100
 
-//#define KDTREE_NEIGHBORLINKS
-=======
-#define TERMINATION_CRITERIA_D_MAX 3
-#define TERMINATION_CRITERIA_N_MAX 100
-
 #define KDTREE_NEIGHBORLINKS
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 #define KDTREE_SAH_CONSTRUCT
 
 const double   KDTREEDOUBLEINFINITYM			= std::numeric_limits<double>::max();
@@ -139,7 +132,7 @@ namespace GlbGlobe
 
 		//bool is_root()const;
 		inline bool is_leaf()const {return (left == NULL);}
-		
+
 		struct KDTNode * left;
 		struct KDTNode * right;
 
@@ -153,24 +146,20 @@ namespace GlbGlobe
 
 		BoundingBox box;  //box
 
-		
+
 	};
 
-    struct Ray
-    {
-        Ray(const Ray&r);
+	struct Ray
+	{
+		Ray(const Ray&r);
 
-        Ray(Vec3 orig, Vec3 dir):origin(orig),direction(dir)
-        { }
+		Ray(Vec3 orig, Vec3 dir):origin(orig),direction(dir)
+		{ }
 
-        Vec3 origin;
-        Vec3 direction;
-    
-    };
-<<<<<<< HEAD
+		Vec3 origin;
+		Vec3 direction;
 
-=======
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
+	};
 	struct KDTNodeM
 	{
 
@@ -183,9 +172,9 @@ namespace GlbGlobe
 
 		const KDTNodeM* backtrack_leaf(const Vec3 &point)const;
 		const KDTNodeM * find_leaf(const Vec3 &point)const ;
-        const bool isPointToLeftOfSplittingPlane(const Vec3&point)const;
+		const bool isPointToLeftOfSplittingPlane(const Vec3&point)const;
 
-        KDTNodeM * getNeighboringNode(const Vec3&exitP)const;
+		KDTNodeM * getNeighboringNode(const Vec3&exitP)const;
 		struct KDTNodeM * left;
 		struct KDTNodeM * right;
 
@@ -203,51 +192,27 @@ namespace GlbGlobe
 		BoundingBox box;  //box 
 	};
 
-<<<<<<< HEAD
 	template <typename T>
-    struct StackElem
-    {
-        StackElem(){}
-        StackElem( const T* n,double aa,double bb):
-        node(n),a(aa),b(bb)
-        {}
-        const T * node;
-=======
-    struct StackElem
-    {
-        StackElem(){}
-        StackElem( const KDTNode* n,double aa,double bb):
-        node(n),a(aa),b(bb)
-        {}
-        const KDTNode * node;
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
-        double a;
-        double b;
-    };
+	struct StackElem
+	{
+		StackElem(){}
+		StackElem( const T* n,double aa,double bb):
+		node(n),a(aa),b(bb)
+		{}
+		const T * node;
+		double a;
+		double b;
+	};
 
-<<<<<<< HEAD
-=======
-    struct StackElemM
-    {
-    StackElemM(){}
-    StackElemM( const KDTNodeM* n,double aa,double bb):
-    node(n),a(aa),b(bb)
-    {}
-    const KDTNodeM * node;
-    double a;
-    double b;
-    };
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
+	struct StackElemA
+	{
+		StackElemA(){}
 
-    struct StackElemA
-    {
-        StackElemA(){}
-
-        const KDTNode* node;//pointer to child
-        double t; // the entry /eixt signed distance
-        Vec3 pb; // entry / exit point;
-        int prev; // the pointer to the pre stack item
-    };
+		const KDTNode* node;//pointer to child
+		double t; // the entry /eixt signed distance
+		Vec3 pb; // entry / exit point;
+		int prev; // the pointer to the pre stack item
+	};
 
 	class GLbKdTree
 	{
@@ -265,26 +230,21 @@ namespace GlbGlobe
 
 		/* ray tracer */
 		bool RayTracer(const Ray&ray,Vec3&intersectionP);
-<<<<<<< HEAD
-=======
 
-        const Triangle * getMeshTriangles(void)const;
+		const Triangle * getMeshTriangles(void)const;
 	protected:
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
-
-        const Triangle * getMeshTriangles(void)const;
 
 	protected:
 		/*
-			(median space)
+		(median space)
 		*/
 		KDTNodeM* ConstructTreeMedianSpaceSplit(unsigned int num_tris,const BoundingBox& bounds);
 		/*
-			SAH
+		SAH
 		*/
 		KDTNode* ConstructTreeSAHSplit(unsigned int num_tris,const BoundingBox& bounds);	
 
-		
+
 		//////////////////////////////////////////////////////////////////////////
 		//neighbor links
 
@@ -296,13 +256,13 @@ namespace GlbGlobe
 		KDTNode* CreateNeighborLinksTree(KDTNode *node, KDTNode *subtree, Faces face);
 
 		void BuildNeighborLinksTree(KDTNode *node, Faces face);
-	
+
 		void BuildRopeStructure();	
 
 	private:
 
 		/*
-			TighFitting AABBox
+		TighFitting AABBox
 		*/
 		BoundingBox computeTightFittingBoundingBox( unsigned int num_tris,unsigned int *tri_indices );
 		void expandBoundBox(const Vec3&v,Vec3&max,Vec3&min);
@@ -311,43 +271,25 @@ namespace GlbGlobe
 			const BoundingBox& bounds,unsigned int curr_depth,KDTNodeM*parent);
 
 		KDTNode * buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdge& boxEdgeList,
-				int maxDepth);
-<<<<<<< HEAD
- 
-=======
+			int maxDepth);
+		/*
+		* Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
+		* Appenix C
+		*/
+		bool RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3&intersectionP);
 
-        /* Sequential ray traversal algorithm
-         * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
-         * Appenix A
-        */
-        bool RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3&intersectionP);
-        /*
-         * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
-         * Appenix B
-        */
-        bool RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP);
-        bool RayTravAlgRECA(const KDTNodeM* node,const Ray& ray,Vec3&intersectionP);
-
-       
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
-    /*
-     * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
-     * Appenix C
-     */
-        bool RayTravAlgRECB(const KDTNode * node,const Ray&ray,Vec3&intersectionP);
-
-    private:
+	private:
 
 		bool     sahUse; //true: sah false :median space
-        bool     rope;
+		bool     rope;
 		KDTNode  *          treeRoot;
 		KDTNodeM *          treeRootM;
 
 		Triangle*           meshTriangles;
 		unsigned int        triangleSize;
-	
+
 #ifdef KDTREE_SAH_CONSTRUCT
-		 const GlbSAH       sah;
+		const GlbSAH       sah;
 #endif
 
 	};

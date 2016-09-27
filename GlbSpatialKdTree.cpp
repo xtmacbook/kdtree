@@ -2,7 +2,6 @@
 
 #include <limits>
 #include <osg/TriangleFunctor>
-<<<<<<< HEAD
 #include <osg/Geode>
 #include <osg/Group>
 #include "GlbSpatialKdTree.h"
@@ -15,25 +14,6 @@ using namespace GlbGlobe;
 BoxEdge::BoxEdge()
 {
 	splitPlanePosition = KDTREEDOUBLEINFINITYM;
-=======
-#include "../../comm/xMath.h"
-
-using namespace GlbGlobe;
-
-extern const double INFINITYM = std::numeric_limits<double>::max();
-extern const double kdTreeEpsilon = 1E-9;
-extern const double KD_TREE_EPSILON;
-
-#define MAX(a, b) ((a) < (b) ? (b) : (a))
-#define MAX3(a, b, c) MAX( MAX(a ,b) ,c)
-#define MIN(a, b) ((a) > (b) ? (b) : (a))
-#define MIN3(a, b, c) MIN( MIN(a, b) ,c)
-
-
-BoxEdge::BoxEdge()
-{
-	splitPlanePosition = INFINITYM;
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 }
 
 Ray::Ray(const Ray&r)
@@ -59,7 +39,7 @@ Triangle::Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
 bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)const
 {
 
-	 double t, u, v;
+	double t, u, v;
 
 	if( RayTriangleIntersect(origin,dir,vertex[0],vertex[1],vertex[2],t,u,v))
 	{
@@ -69,7 +49,7 @@ bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersec
 		return true;
 	}
 
-	 return false;
+	return false;
 }
 
 TriangleM::TriangleM(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
@@ -179,11 +159,8 @@ KDTNodeM::~KDTNodeM(void)
 const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 {
 #ifndef KDTREE_NEIGHBORLINKS
-<<<<<<< HEAD
+
 	if (box.contains(point,KD_TREE_EPSILON))
-=======
-	if (box.contains(point,kdTreeEpsilon))
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 	{
 		return find_leaf(point);		
 	}
@@ -196,72 +173,72 @@ const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 		return parent->backtrack_leaf(point);
 	}
 #else
-    return NULL;
+	return NULL;
 #endif
 }
 
 const bool KDTNodeM::isPointToLeftOfSplittingPlane(const Vec3&p)const
 {
-    if ( splitEdge->axis == X_axis )
-    {
-        return ( p.x() < splitEdge->splitPlanePosition );
-    }
-    else if ( splitEdge->axis == Y_axis )
-    {
-        return ( p.y() < splitEdge->splitPlanePosition );
-    }
-    else if ( splitEdge->axis == Z_axis )
-    {
-        return ( p.z() < splitEdge->splitPlanePosition );
-    }
-    else
-    {
-        return false;
-    }
+	if ( splitEdge->axis == X_axis )
+	{
+		return ( p.x() < splitEdge->splitPlanePosition );
+	}
+	else if ( splitEdge->axis == Y_axis )
+	{
+		return ( p.y() < splitEdge->splitPlanePosition );
+	}
+	else if ( splitEdge->axis == Z_axis )
+	{
+		return ( p.z() < splitEdge->splitPlanePosition );
+	}
+	else
+	{
+		return false;
+	}
 }
 
 KDTNodeM* KDTNodeM::getNeighboringNode(const Vec3&p)const
 {
-    #ifdef KDTREE_NEIGHBORLINKS
-        // Check left face.
-    if ( fabs( p.x() - box._min.x() ) < KD_TREE_EPSILON )
-    {
-        return ropes[FLeft];
-    }
-        // Check front face.
-    else if ( fabs( p.z() - box._max.z() ) < KD_TREE_EPSILON )
-    {
-        return ropes[FFront];
-    }
-        // Check right face.
-    else if ( fabs( p.x() - box._max.x() ) < KD_TREE_EPSILON )
-    {
-        return ropes[FRight];
-    }
-        // Check back face.
-    else if ( fabs( p.z() - box._min.z() ) < KD_TREE_EPSILON )
-    {
-        return ropes[FBack];
-    }
-        // Check top face.
-    else if ( fabs( p.y() - box._max.y() ) < KD_TREE_EPSILON )
-    {
-        return ropes[FTop];
-    }
-        // Check bottom face.
-    else if ( fabs( p.y() - box._min.y() ) < KD_TREE_EPSILON )
-    {
-        return ropes[FBottom];
-    }
-        // p should be a point on one of the faces of this node's bounding box, but in this case, it isn't.
-    else
-    {
-       // std::cout << "ERROR: Node neighbor could not be returned." << std::endl;
-        return NULL;
-    }
-    #else
-    return NULL;
-    #endif
+#ifdef KDTREE_NEIGHBORLINKS
+	// Check left face.
+	if ( fabs( p.x() - box._min.x() ) < KD_TREE_EPSILON )
+	{
+		return ropes[FLeft];
+	}
+	// Check front face.
+	else if ( fabs( p.z() - box._max.z() ) < KD_TREE_EPSILON )
+	{
+		return ropes[FFront];
+	}
+	// Check right face.
+	else if ( fabs( p.x() - box._max.x() ) < KD_TREE_EPSILON )
+	{
+		return ropes[FRight];
+	}
+	// Check back face.
+	else if ( fabs( p.z() - box._min.z() ) < KD_TREE_EPSILON )
+	{
+		return ropes[FBack];
+	}
+	// Check top face.
+	else if ( fabs( p.y() - box._max.y() ) < KD_TREE_EPSILON )
+	{
+		return ropes[FTop];
+	}
+	// Check bottom face.
+	else if ( fabs( p.y() - box._min.y() ) < KD_TREE_EPSILON )
+	{
+		return ropes[FBottom];
+	}
+	// p should be a point on one of the faces of this node's bounding box, but in this case, it isn't.
+	else
+	{
+		// std::cout << "ERROR: Node neighbor could not be returned." << std::endl;
+		return NULL;
+	}
+#else
+	return NULL;
+#endif
 }
 
 const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const
@@ -307,7 +284,7 @@ std::vector<Triangle> triangles;
 
 const Triangle * GlbGlobe::GLbKdTree::getMeshTriangles(void)const
 {
-    return meshTriangles;
+	return meshTriangles;
 }
 
 unsigned int GLbKdTree::GetMeshTriangleAndVertexs(const osg::Node* mesh)
@@ -348,23 +325,13 @@ unsigned int GLbKdTree::GetMeshTriangleAndVertexs(const osg::Node* mesh)
 	return triangleSize;
 }
 
-<<<<<<< HEAD
-
-=======
-const Triangle * GlbGlobe::GLbKdTree::getMeshTriangles(void)const
-{
-    return meshTriangles;
-}
-std::vector<Triangle> triangles;
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
-
 struct TriangleIntersector
 {
-	 
+
 
 	TriangleIntersector()
 	{
-		 
+
 	}
 
 	inline void operator () (const osg::Vec3d& v1,const osg::Vec3d& v2,const osg::Vec3d& v3, bool treatVertexDataAsTemporary)
@@ -380,7 +347,7 @@ unsigned int  GLbKdTree::GetMeshTriangleAndVertexsFromDrawable(const osg::Drawab
 
 	//unsigned int drawableNum = geometry->getdraw
 	osg::TriangleFunctor<TriangleIntersector> ti;
-	
+
 	drawable->accept(ti);
 
 	return triangles.size();
@@ -419,13 +386,9 @@ void GLbKdTree::expandBoundBox(const Vec3&v,Vec3&_max,Vec3&_min)
 BoundingBox GLbKdTree::computeTightFittingBoundingBox(unsigned int num_tris,unsigned int *tri_indices)
 {
 	// Compute bounding box for input mesh.
-<<<<<<< HEAD
 	Vec3 _max = Vec3( -KDTREEDOUBLEINFINITYM, -KDTREEDOUBLEINFINITYM, -KDTREEDOUBLEINFINITYM );
 	Vec3 _min = Vec3( KDTREEDOUBLEINFINITYM, KDTREEDOUBLEINFINITYM, KDTREEDOUBLEINFINITYM );
-=======
-	Vec3 _max = Vec3( -INFINITYM, -INFINITYM, -INFINITYM );
-	Vec3 _min = Vec3( INFINITYM, INFINITYM, INFINITYM );
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
+
 
 	for ( unsigned int i = 0; i < num_tris; ++i )
 	{
@@ -445,7 +408,7 @@ BoundingBox GLbKdTree::computeTightFittingBoundingBox(unsigned int num_tris,unsi
 	return bbox;
 }
 
- 
+
 
 
 

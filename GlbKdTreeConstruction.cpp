@@ -4,12 +4,7 @@
 
 using namespace GlbGlobe;
 
-<<<<<<< HEAD
-=======
-extern const bool USE_TIGHT_FITTING_BOUNDING_BOXES = false;
-extern const unsigned int INTINFINITY = std::numeric_limits<unsigned int >::max();
 
->>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 bool GlbGlobe::GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBox&bounds)
 {
 	if(sahUse)
@@ -20,10 +15,10 @@ bool GlbGlobe::GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBo
 	{
 		treeRootM = ConstructTreeMedianSpaceSplit(num_tris,bounds);
 
-        if(rope)
-        {
-            BuildRopeStructure();
-        }
+		if(rope)
+		{
+			BuildRopeStructure();
+		}
 	}
 	return true;
 }
@@ -35,7 +30,7 @@ KDTNodeM* GLbKdTree::constructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 	KDTNodeM * currentNode = new KDTNodeM();
 
 #ifndef KDTREE_NEIGHBORLINKS 
-    currentNode->parent = parent;
+	currentNode->parent = parent;
 #endif
 	currentNode->num_tris = num_tris;
 
