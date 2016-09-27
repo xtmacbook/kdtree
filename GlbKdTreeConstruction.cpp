@@ -4,6 +4,12 @@
 
 using namespace GlbGlobe;
 
+<<<<<<< HEAD
+=======
+extern const bool USE_TIGHT_FITTING_BOUNDING_BOXES = false;
+extern const unsigned int INTINFINITY = std::numeric_limits<unsigned int >::max();
+
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 bool GlbGlobe::GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBox&bounds)
 {
 	if(sahUse)

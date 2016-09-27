@@ -3,6 +3,10 @@
 
 using namespace GlbGlobe;
 
+<<<<<<< HEAD
+=======
+extern const double KD_TREE_EPSILON;
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 
 template <typename T>
 static void optimizeRopes(T * ropes[],GlbGlobe::BoundingBox&box)
@@ -171,8 +175,11 @@ static void optimizeRopes(T * ropes[],GlbGlobe::BoundingBox&box)
 template <typename T>
 static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
 {
+<<<<<<< HEAD
 #ifdef KDTREE_NEIGHBORLINKS
 
+=======
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
     if ( curr_node->is_leaf() )
         {
         for ( unsigned int i = 0; i < 6; ++i )
@@ -192,6 +199,7 @@ static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
         GlbGlobe::Faces SL, SR; //FLeft = 0x00, FRight, FFront, FBack, FBottom, FTop
         if ( curr_node->splitEdge->axis == X_axis )
             {
+<<<<<<< HEAD
 				SL = FLeft;
 				SR = FRight;
             }
@@ -199,12 +207,26 @@ static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
             {
 				SL = FBottom;
 				SR = FTop;
+=======
+            SL = FLeft;
+            SR = FRight;
+            }
+        else if ( curr_node->splitEdge->axis == Y_axis )
+            {
+            SL = FBottom;
+            SR = FTop;
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
             }
             // Split plane is Z_AXIS.
         else
             {
+<<<<<<< HEAD
 				SL = FBack;
 				SR = FFront;
+=======
+            SL = FBack;
+            SR = FFront;
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
             }
 
         T* RS_left[6];
@@ -223,7 +245,10 @@ static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
         RS_right[SL] = curr_node->left;
         buildRopeStructure( curr_node->right, RS_right, is_single_ray_case );
         }
+<<<<<<< HEAD
 	#endif
+=======
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 }
 
 

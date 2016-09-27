@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <osg/TriangleFunctor>
+<<<<<<< HEAD
 #include <osg/Geode>
 #include <osg/Group>
 #include "GlbSpatialKdTree.h"
@@ -14,6 +15,25 @@ using namespace GlbGlobe;
 BoxEdge::BoxEdge()
 {
 	splitPlanePosition = KDTREEDOUBLEINFINITYM;
+=======
+#include "../../comm/xMath.h"
+
+using namespace GlbGlobe;
+
+extern const double INFINITYM = std::numeric_limits<double>::max();
+extern const double kdTreeEpsilon = 1E-9;
+extern const double KD_TREE_EPSILON;
+
+#define MAX(a, b) ((a) < (b) ? (b) : (a))
+#define MAX3(a, b, c) MAX( MAX(a ,b) ,c)
+#define MIN(a, b) ((a) > (b) ? (b) : (a))
+#define MIN3(a, b, c) MIN( MIN(a, b) ,c)
+
+
+BoxEdge::BoxEdge()
+{
+	splitPlanePosition = INFINITYM;
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 }
 
 Ray::Ray(const Ray&r)
@@ -159,7 +179,11 @@ KDTNodeM::~KDTNodeM(void)
 const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 {
 #ifndef KDTREE_NEIGHBORLINKS
+<<<<<<< HEAD
 	if (box.contains(point,KD_TREE_EPSILON))
+=======
+	if (box.contains(point,kdTreeEpsilon))
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 	{
 		return find_leaf(point);		
 	}
@@ -324,7 +348,15 @@ unsigned int GLbKdTree::GetMeshTriangleAndVertexs(const osg::Node* mesh)
 	return triangleSize;
 }
 
+<<<<<<< HEAD
 
+=======
+const Triangle * GlbGlobe::GLbKdTree::getMeshTriangles(void)const
+{
+    return meshTriangles;
+}
+std::vector<Triangle> triangles;
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 
 struct TriangleIntersector
 {
@@ -387,8 +419,13 @@ void GLbKdTree::expandBoundBox(const Vec3&v,Vec3&_max,Vec3&_min)
 BoundingBox GLbKdTree::computeTightFittingBoundingBox(unsigned int num_tris,unsigned int *tri_indices)
 {
 	// Compute bounding box for input mesh.
+<<<<<<< HEAD
 	Vec3 _max = Vec3( -KDTREEDOUBLEINFINITYM, -KDTREEDOUBLEINFINITYM, -KDTREEDOUBLEINFINITYM );
 	Vec3 _min = Vec3( KDTREEDOUBLEINFINITYM, KDTREEDOUBLEINFINITYM, KDTREEDOUBLEINFINITYM );
+=======
+	Vec3 _max = Vec3( -INFINITYM, -INFINITYM, -INFINITYM );
+	Vec3 _min = Vec3( INFINITYM, INFINITYM, INFINITYM );
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 
 	for ( unsigned int i = 0; i < num_tris; ++i )
 	{

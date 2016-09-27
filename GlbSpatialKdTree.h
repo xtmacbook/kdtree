@@ -23,10 +23,17 @@
 
 #include "GlbSAH.h"
 
+<<<<<<< HEAD
 #define TERMINATION_CRITERIA_D_MAX 16
 #define TERMINATION_CRITERIA_N_MAX 100
 
 //#define KDTREE_NEIGHBORLINKS
+=======
+#define TERMINATION_CRITERIA_D_MAX 3
+#define TERMINATION_CRITERIA_N_MAX 100
+
+#define KDTREE_NEIGHBORLINKS
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 #define KDTREE_SAH_CONSTRUCT
 
 const double   KDTREEDOUBLEINFINITYM			= std::numeric_limits<double>::max();
@@ -160,7 +167,10 @@ namespace GlbGlobe
         Vec3 direction;
     
     };
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 	struct KDTNodeM
 	{
 
@@ -193,6 +203,7 @@ namespace GlbGlobe
 		BoundingBox box;  //box 
 	};
 
+<<<<<<< HEAD
 	template <typename T>
     struct StackElem
     {
@@ -201,10 +212,32 @@ namespace GlbGlobe
         node(n),a(aa),b(bb)
         {}
         const T * node;
+=======
+    struct StackElem
+    {
+        StackElem(){}
+        StackElem( const KDTNode* n,double aa,double bb):
+        node(n),a(aa),b(bb)
+        {}
+        const KDTNode * node;
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
         double a;
         double b;
     };
 
+<<<<<<< HEAD
+=======
+    struct StackElemM
+    {
+    StackElemM(){}
+    StackElemM( const KDTNodeM* n,double aa,double bb):
+    node(n),a(aa),b(bb)
+    {}
+    const KDTNodeM * node;
+    double a;
+    double b;
+    };
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 
     struct StackElemA
     {
@@ -232,6 +265,12 @@ namespace GlbGlobe
 
 		/* ray tracer */
 		bool RayTracer(const Ray&ray,Vec3&intersectionP);
+<<<<<<< HEAD
+=======
+
+        const Triangle * getMeshTriangles(void)const;
+	protected:
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
 
         const Triangle * getMeshTriangles(void)const;
 
@@ -273,7 +312,24 @@ namespace GlbGlobe
 
 		KDTNode * buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdge& boxEdgeList,
 				int maxDepth);
+<<<<<<< HEAD
  
+=======
+
+        /* Sequential ray traversal algorithm
+         * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
+         * Appenix A
+        */
+        bool RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3&intersectionP);
+        /*
+         * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
+         * Appenix B
+        */
+        bool RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP);
+        bool RayTravAlgRECA(const KDTNodeM* node,const Ray& ray,Vec3&intersectionP);
+
+       
+>>>>>>> 8086bc5fcc6e933310fcfa60de36815a069a16b2
     /*
      * Reference :Heuristic Ray Shooting Algorithms by Vlastimil Havran
      * Appenix C
