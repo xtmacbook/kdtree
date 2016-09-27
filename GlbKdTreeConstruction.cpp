@@ -4,12 +4,7 @@
 
 using namespace GlbGlobe;
 
-const bool USE_TIGHT_FITTING_BOUNDING_BOXES = false;
-const unsigned int INTINFINITY = std::numeric_limits<unsigned int >::max();
-
-
-
-bool GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBox&bounds)
+bool GlbGlobe::GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBox&bounds)
 {
 	if(sahUse)
 	{
@@ -18,27 +13,27 @@ bool GLbKdTree::ConstructKdTree(unsigned int num_tris,const BoundingBox&bounds)
 	else
 	{
 		treeRootM = ConstructTreeMedianSpaceSplit(num_tris,bounds);
+
+        if(rope)
+        {
+            BuildRopeStructure();
+        }
 	}
 	return true;
 }
 
-KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigned int *tri_indices,
+KDTNodeM* GLbKdTree::constructTreeMedianSpaceSplit(unsigned int num_tris,unsigned int *tri_indices,
 	const BoundingBox& bounds, unsigned int curr_depth,KDTNodeM*parent)
 {
-	//创建新的节点
+
 	KDTNodeM * currentNode = new KDTNodeM();
-	//test
-	currentNode->leve = curr_depth;
 
 #ifndef KDTREE_NEIGHBORLINKS 
-	 currentNode->parent = parent;
+    currentNode->parent = parent;
 #endif
-
-	currentNode->parent = parent;
-
 	currentNode->num_tris = num_tris;
 
-	if ( USE_TIGHT_FITTING_BOUNDING_BOXES ) 
+	if ( true ) 
 	{
 		currentNode->box = computeTightFittingBoundingBox( num_tris ,tri_indices);
 	}
@@ -58,17 +53,17 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 	const Vec3& boundMax = bounds._max;
 	const Vec3& boundMin = bounds._min;
 
-	//设置splitting plane 轴
+
 	double xlength = boundMax.x() - boundMin.x();
 	double ylength = boundMax.y() - boundMin.y();
 	double zlength = boundMax.z() - boundMin.z();
 
-	//splitting plane轴向
+
 	Axes bestAxes = ( xlength > ylength && xlength > zlength ) ? X_axis :
 		( ylength > zlength ? Y_axis : Z_axis);
 	currentNode->splitEdge->axis = bestAxes;
 
-	//对最长轴进行中点划分
+
 	double median_val = 0.0;
 	BoundingBox left_bbox  = bounds;
 	BoundingBox right_bbox = bounds;
@@ -91,7 +86,7 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 		left_bbox._max.z() = median_val;
 		right_bbox._min.z() = median_val;
 	}
-	//设置splitting plane位置
+
 	currentNode->splitEdge->splitPlanePosition = median_val;
 
 
@@ -129,7 +124,7 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 			max_tri_val = ( v0.z() > v1.z() && v0.z() > v2.z() ) ? v0.z() : ( v1.z() > v2.z() ? v1.z() : v2.z() );
 		}
 
-		// 重置
+
 		if ( min_tri_val < median_val )
 		{
 			temp_left_tri_indices[i] = tri_indices[i];
@@ -137,7 +132,7 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 		}
 		else 
 		{
-			temp_left_tri_indices[i] = INTINFINITY;
+			temp_left_tri_indices[i] = KDTREEINTINFINITY;
 		}
 
 		// Update temp_right_tri_indices.
@@ -148,11 +143,11 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 		}
 		else 
 		{
-			temp_right_tri_indices[i] = INTINFINITY;
+			temp_right_tri_indices[i] = KDTREEINTINFINITY;
 		}
 	}
 
-	//为左右子节点分配索引容器
+	//
 	unsigned int *left_tri_indices = new unsigned int[left_tri_count];
 	unsigned int *right_tri_indices = new unsigned int[right_tri_count];
 
@@ -160,27 +155,27 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 	unsigned int left_index = 0, right_index = 0;
 	for (unsigned int i = 0; i < num_tris; ++i )
 	{
-		if ( temp_left_tri_indices[i] != INTINFINITY )
+		if ( temp_left_tri_indices[i] != KDTREEINTINFINITY )
 		{
 			left_tri_indices[left_index] = temp_left_tri_indices[i];
 			++left_index;
 		}
-		if ( temp_right_tri_indices[i] != INTINFINITY )
+		if ( temp_right_tri_indices[i] != KDTREEINTINFINITY )
 		{
 			right_tri_indices[right_index] = temp_right_tri_indices[i];
 			++right_index;
 		}
 	}
 
-	// 删除临时索引
+	//
 	delete[] temp_left_tri_indices;
 	delete[] temp_right_tri_indices;
 
 	delete[] tri_indices;
 	tri_indices = NULL;
-	// 递归子节点
-	currentNode->left = ConstructTreeMedianSpaceSplit( left_tri_count, left_tri_indices, left_bbox, curr_depth + 1,currentNode );
-	currentNode->right = ConstructTreeMedianSpaceSplit( right_tri_count, right_tri_indices, right_bbox, curr_depth + 1 ,currentNode);
+	//
+	currentNode->left = constructTreeMedianSpaceSplit( left_tri_count, left_tri_indices, left_bbox, curr_depth + 1,currentNode );
+	currentNode->right = constructTreeMedianSpaceSplit( right_tri_count, right_tri_indices, right_bbox, curr_depth + 1 ,currentNode);
 
 
 	return currentNode;
@@ -196,7 +191,7 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,
 		tris_indics[i] = i;
 	}
 
-	treeRootM =  ConstructTreeMedianSpaceSplit(num_tris,tris_indics,bounds,0,NULL);
+	treeRootM =  constructTreeMedianSpaceSplit(num_tris,tris_indics,bounds,0,NULL);
 
 	return treeRootM;
 }
@@ -205,25 +200,24 @@ KDTNodeM* GLbKdTree::ConstructTreeMedianSpaceSplit(unsigned int num_tris,
 KDTNode* GLbKdTree::ConstructTreeSAHSplit(unsigned int num_tris,const BoundingBox& bounds)
 {
 
-	// boxEdgeList列表
-	//分别保存XYZ三个坐标轴信息
+
 	vv_BoxEdge boxEdgeList(3);
 
-	// 构建模型三角形面片索引
-	std::vector<int> triangleIndices;
+
+	std::vector<int> triangleIndices(num_tris,0);
 	for (unsigned int i = 0; i < num_tris; i++) 
 	{
-		triangleIndices.push_back(i);
+		triangleIndices[i] = i;
 	}
 
-	//保存Start end两个点
+
 	unsigned int n = triangleIndices.size();
 	for (unsigned int i=0;i<3;i++) 
 	{
 		boxEdgeList[i].resize(2*n);
 	}
 
-	// 初始化edges列表
+
 	for (unsigned int i = 0; i < 3; i++) 
 	{
 		for (unsigned int j = 0; j < n; j++) 
@@ -233,30 +227,26 @@ KDTNode* GLbKdTree::ConstructTreeSAHSplit(unsigned int num_tris,const BoundingBo
 		}
 	}
 
-	// boxEdgeList排序
+
 	sort(boxEdgeList[0].begin(), boxEdgeList[0].end());
 	sort(boxEdgeList[1].begin(), boxEdgeList[1].end());
 	sort(boxEdgeList[2].begin(), boxEdgeList[2].end());
 
-	//构建树结构
-	treeRoot = buildTree_boxEdges(bounds,boxEdgeList,TERMINATION_CRITERIA_D_MAX,NULL);
+
+	treeRoot = buildTree_boxEdges(bounds,boxEdgeList,TERMINATION_CRITERIA_D_MAX);
 
 	return treeRoot;
 }
 
 KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdge& boxEdgeList,
-	int maxDepth,KDTNode*parent)
+	int maxDepth)
 {
-	//创建节点
-	KDTNode * newNode = new KDTNode();
 
-#ifndef KDTREE_NEIGHBORLINKS
-	newNode->parent = parent;
-#endif
+	KDTNode * newNode = new KDTNode();
 
 	unsigned int triangles = boxEdgeList[0].size()/2;
 
-	if (maxDepth == 0 || triangles == 0) 
+	if (maxDepth == 0 || triangles <= TERMINATION_CRITERIA_N_MAX)
 	{
 		newNode->left = NULL;
 		newNode->right = NULL;
@@ -276,11 +266,9 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 	else 
 	{
 		double SAH_best = triangles * sah.m_Ci;
-		
-		//最佳分割线
+
 		BoxEdge *bestEdge = NULL;
 
-		//SAH 获取最佳的分割线
 		for (unsigned int i=0;i<3;i++) 
 		{
 			unsigned int nA = 0, nB = triangles;
@@ -294,7 +282,7 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 				}
 
 				double SAH_now = sah(nodeExtent, i, nA, nB, edge.splitPlanePosition);
-				//遍历得出最小值
+				//
 				if (SAH_now < SAH_best) 
 				{
 					SAH_best = SAH_now;
@@ -308,7 +296,7 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 			}
 		}
 
-		// 此时分割效率不大
+		//
 		if (!bestEdge)
 		{
 			newNode->right = NULL;
@@ -328,20 +316,20 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 		}
 
 		std::vector<char> membership(triangleSize, 0);
-		vv_BoxEdge left(3), right(3); //左右分支boxEdge
+		vv_BoxEdge left(3), right(3); //
 
 		unsigned int left_s = 0, right_s = 0;
 		v_BoxEdge::const_iterator I = boxEdgeList[bestEdge->axis].begin(),
 			E = boxEdgeList[bestEdge->axis].end();
 
-		//遍历 分开左右子节点
+		//
 		for (; (&(*I)) != bestEdge; I++) 
 		{
 			BoxEdge edge = *I;
 			if (edge.edgeType == START)
 			{
 				membership[edge.triangleIndex] += 1;
-				left_s++;  //左子树++
+				left_s++;  //
 			}
 		}
 
@@ -351,11 +339,11 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 			if (edge.edgeType == END)
 			{
 				membership[edge.triangleIndex] += 2;
-				right_s++; //右子树++
+				right_s++; //
 			}
 		}
 
-		/////如果分割线将三角形分割了，则三角形放在左右子树下
+		/////
 		for (unsigned int i=0;i<3;i++) 
 		{
 			for(v_BoxEdge::const_iterator I=boxEdgeList[i].begin(),
@@ -373,7 +361,7 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 			}
 		}
 
-		//左右子树的AABB
+		//
 		BoundingBox leftNodeExtent(nodeExtent), rightNodeExtent(nodeExtent);
 		leftNodeExtent._max[bestEdge->axis] = bestEdge->splitPlanePosition;
 		rightNodeExtent._min[bestEdge->axis] = bestEdge->splitPlanePosition;
@@ -386,8 +374,8 @@ KDTNode * GLbKdTree::buildTree_boxEdges(const BoundingBox& nodeExtent, vv_BoxEdg
 		newNode->splitEdge->splitPlanePosition = bestEdge->splitPlanePosition;
 		newNode->splitEdge->triangleIndex = bestEdge->triangleIndex;
 
-		newNode->left = buildTree_boxEdges(leftNodeExtent, left, maxDepth-1,newNode);
-		newNode->right = buildTree_boxEdges(rightNodeExtent, right, maxDepth-1,newNode);
+		newNode->left = buildTree_boxEdges(leftNodeExtent, left, maxDepth-1);
+		newNode->right = buildTree_boxEdges(rightNodeExtent, right, maxDepth-1 );
 
 		return newNode;
 	}

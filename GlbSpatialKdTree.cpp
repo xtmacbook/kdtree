@@ -1,27 +1,23 @@
 
-#include "GlbSpatialKdTree.h"
-#include <limits>
 
+#include <limits>
 #include <osg/TriangleFunctor>
+#include <osg/Geode>
+#include <osg/Group>
+#include "GlbSpatialKdTree.h"
+
 #include "../comm/xMath.h"
 
 using namespace GlbGlobe;
 
-extern const double INFINITY = std::numeric_limits<double>::max();
-extern const double kdTreeEpsilon = 1E-9;
-
-
-#define MAX(a, b) ((a) < (b) ? (b) : (a))
-#define MAX3(a, b, c) MAX( MAX(a ,b) ,c)
-#define MIN(a, b) ((a) > (b) ? (b) : (a))
-#define MIN3(a, b, c) MIN( MIN(a, b) ,c)
-
 
 BoxEdge::BoxEdge()
 {
-	splitPlanePosition = INFINITY;
+	splitPlanePosition = KDTREEDOUBLEINFINITYM;
 }
 
+Ray::Ray(const Ray&r)
+{ origin = r.origin; direction = r.direction; }
 
 Triangle::Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
 {
@@ -40,8 +36,9 @@ Triangle::Triangle(const Vec3 &v0, const Vec3 &v1, const Vec3 &v2)
 
 }
 
-bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)
+bool Triangle::getRayIntersection(const Vec3&origin,const Vec3&dir,Vec3&intersectionPoint)const
 {
+
 	 double t, u, v;
 
 	if( RayTriangleIntersect(origin,dir,vertex[0],vertex[1],vertex[2],t,u,v))
@@ -74,8 +71,6 @@ KDTNode::KDTNode(void)
 	{
 		ropes[i] = NULL;
 	}
-#else
-	parent = NULL;
 #endif
 
 }
@@ -106,40 +101,6 @@ KDTNode::~KDTNode(void)
 		ropes[i] = NULL;
 	}
 #endif
-}
-
-
-const KDTNode* KDTNode::backtrack_leaf(const Vec3 &point)const
-{
-	if (box.contains(point,kdTreeEpsilon))
-	{
-		return find_leaf(point);		
-	}
-	else if (parent == NULL)
-	{
-		return NULL;
-	}
-	else
-	{
-		return parent->backtrack_leaf(point);
-	}
-}
-
-const KDTNode * KDTNode::find_leaf(const Vec3 &point)const
-{
-	//递归寻找最终的叶节点
-	if (is_leaf())
-	{
-		return this;
-	}
-	else if (point[splitEdge->axis] < splitEdge->splitPlanePosition)
-	{
-		return left->find_leaf(point);
-	}
-	else
-	{
-		return right->find_leaf(point);
-	}
 }
 
 KDTNodeM::KDTNodeM(void)
@@ -197,7 +158,8 @@ KDTNodeM::~KDTNodeM(void)
 
 const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 {
-	if (box.contains(point,kdTreeEpsilon))
+#ifndef KDTREE_NEIGHBORLINKS
+	if (box.contains(point,KD_TREE_EPSILON))
 	{
 		return find_leaf(point);		
 	}
@@ -209,6 +171,73 @@ const KDTNodeM* KDTNodeM::backtrack_leaf(const Vec3 &point) const
 	{
 		return parent->backtrack_leaf(point);
 	}
+#else
+    return NULL;
+#endif
+}
+
+const bool KDTNodeM::isPointToLeftOfSplittingPlane(const Vec3&p)const
+{
+    if ( splitEdge->axis == X_axis )
+    {
+        return ( p.x() < splitEdge->splitPlanePosition );
+    }
+    else if ( splitEdge->axis == Y_axis )
+    {
+        return ( p.y() < splitEdge->splitPlanePosition );
+    }
+    else if ( splitEdge->axis == Z_axis )
+    {
+        return ( p.z() < splitEdge->splitPlanePosition );
+    }
+    else
+    {
+        return false;
+    }
+}
+
+KDTNodeM* KDTNodeM::getNeighboringNode(const Vec3&p)const
+{
+    #ifdef KDTREE_NEIGHBORLINKS
+        // Check left face.
+    if ( fabs( p.x() - box._min.x() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FLeft];
+    }
+        // Check front face.
+    else if ( fabs( p.z() - box._max.z() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FFront];
+    }
+        // Check right face.
+    else if ( fabs( p.x() - box._max.x() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FRight];
+    }
+        // Check back face.
+    else if ( fabs( p.z() - box._min.z() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FBack];
+    }
+        // Check top face.
+    else if ( fabs( p.y() - box._max.y() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FTop];
+    }
+        // Check bottom face.
+    else if ( fabs( p.y() - box._min.y() ) < KD_TREE_EPSILON )
+    {
+        return ropes[FBottom];
+    }
+        // p should be a point on one of the faces of this node's bounding box, but in this case, it isn't.
+    else
+    {
+       // std::cout << "ERROR: Node neighbor could not be returned." << std::endl;
+        return NULL;
+    }
+    #else
+    return NULL;
+    #endif
 }
 
 const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const
@@ -228,7 +257,7 @@ const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const
 	}
 }
 
-GLbKdTree::GLbKdTree(bool t):sahUse(t)
+GLbKdTree::GLbKdTree(bool t,bool r):sahUse(t),rope(r)
 {
 	treeRoot =  NULL;
 	treeRootM = NULL;
@@ -250,34 +279,34 @@ GlbGlobe::GLbKdTree::~GLbKdTree(void )
 	}
 }
 
-
-
 std::vector<Triangle> triangles;
 
-struct TriangleIntersector
+const Triangle * GlbGlobe::GLbKdTree::getMeshTriangles(void)const
 {
-	 
+    return meshTriangles;
+}
 
-	TriangleIntersector()
-	{
-		 
-	}
-
-	inline void operator () (const osg::Vec3& v1,const osg::Vec3& v2,const osg::Vec3& v3, bool treatVertexDataAsTemporary)
-	{
-		triangles.push_back(Triangle(v1,v2,v3));
-	}
-
-};
-
-unsigned int  GLbKdTree::GetMeshTriangleAndVertexs(const osg::Drawable*drawable)
+unsigned int GLbKdTree::GetMeshTriangleAndVertexs(const osg::Node* mesh)
 {
-	if(!drawable) return false;
+	if(!mesh) return 0;
 
-	//unsigned int drawableNum = geometry->getdraw
-	osg::TriangleFunctor<TriangleIntersector> ti;
-	
-	drawable->accept(ti);
+	if(mesh->asGroup())
+	{
+		const osg::Group * meshGroup = mesh->asGroup();
+
+		for(unsigned int i = 0;i <meshGroup->getNumChildren();i++)
+		{
+			if(meshGroup->getChild(i)->asGeode())
+			{
+				const osg::Geode::DrawableList& list =  meshGroup->getChild(i)->asGeode()->getDrawableList();
+
+				for(unsigned int j = 0;j < list.size();j++)
+				{
+					GetMeshTriangleAndVertexsFromDrawable(list.at(j).get());
+				}
+			}
+		}
+	}
 
 	meshTriangles = new Triangle[triangles.size()];
 
@@ -289,6 +318,38 @@ unsigned int  GLbKdTree::GetMeshTriangleAndVertexs(const osg::Drawable*drawable)
 	}
 
 	triangleSize = triangles.size();
+
+	triangles.clear();
+
+	return triangleSize;
+}
+
+
+
+struct TriangleIntersector
+{
+	 
+
+	TriangleIntersector()
+	{
+		 
+	}
+
+	inline void operator () (const osg::Vec3d& v1,const osg::Vec3d& v2,const osg::Vec3d& v3, bool treatVertexDataAsTemporary)
+	{
+		triangles.push_back(Triangle(v1,v2,v3));
+	}
+
+};
+
+unsigned int  GLbKdTree::GetMeshTriangleAndVertexsFromDrawable(const osg::Drawable*drawable)
+{
+	if(!drawable) return false;
+
+	//unsigned int drawableNum = geometry->getdraw
+	osg::TriangleFunctor<TriangleIntersector> ti;
+	
+	drawable->accept(ti);
 
 	return triangles.size();
 }
@@ -326,8 +387,8 @@ void GLbKdTree::expandBoundBox(const Vec3&v,Vec3&_max,Vec3&_min)
 BoundingBox GLbKdTree::computeTightFittingBoundingBox(unsigned int num_tris,unsigned int *tri_indices)
 {
 	// Compute bounding box for input mesh.
-	Vec3 _max = Vec3( -INFINITY, -INFINITY, -INFINITY );
-	Vec3 _min = Vec3( INFINITY, INFINITY, INFINITY );
+	Vec3 _max = Vec3( -KDTREEDOUBLEINFINITYM, -KDTREEDOUBLEINFINITYM, -KDTREEDOUBLEINFINITYM );
+	Vec3 _min = Vec3( KDTREEDOUBLEINFINITYM, KDTREEDOUBLEINFINITYM, KDTREEDOUBLEINFINITYM );
 
 	for ( unsigned int i = 0; i < num_tris; ++i )
 	{

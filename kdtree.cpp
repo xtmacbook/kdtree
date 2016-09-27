@@ -1,183 +1,148 @@
-
-#include <osg/Material>
-#include <osg/Geode>
-#include <osg/BlendFunc>
-#include <osg/Depth>
-#include <osg/PolygonOffset>
-#include <osg/MatrixTransform>
-#include <osg/Camera>
-#include <osg/RenderInfo>
-#include <osg/ShapeDrawable>  
-#include <osg/ComputeBoundsVisitor>  
-#include <osg/BoundingBox>  
-#include <osg/BoundingSphere>  
-#include <osg/AnimationPath> 
-#include <osg/PositionAttitudeTransform>
-#include <osg/VertexProgram>
-#include <osg/FragmentProgram>
-#include <osg/Plane>
-
-#include <OpenThreads/Mutex>
-
-#include <osgViewer/Viewer>
-#include <osgViewer/ViewerEventHandlers>
-#include <osgViewer/CompositeViewer>
-#include <osgViewer/ViewerEventHandlers>
-#include <osgWidget/PdfReader>
-
-#include <osgDB/ReadFile>
-#include <osgDB/WriteFile>
+#include "GlbSpatialKdTree.h"
 
 
-#include <osgGA/NodeTrackerManipulator>
-#include <osgGA/TrackballManipulator>
-#include <osgGA/KeySwitchMatrixManipulator>
-#include <osgGA/TerrainManipulator>
-#include <osgGA/StateSetManipulator>
+#include "../../comm/xMath.h"
+extern const double INFINITYM;
+extern const double kdTreeEpsilon;
+static const double RayEpsilonOffset = 0.0001;
 
-#include <osgUtil/Optimizer>
-#include <osgUtil/CullVisitor>
-#include <osgUtil/SmoothingVisitor>
-#include <osgUtil/PolytopeIntersector>
-#include <osgUtil/LineSegmentIntersector>
-
-#include "../kdtree/GlbSpatialKdTree.h"
-#include "../comm/Geometry.h"
-
-class PickHandler : public osgGA::GUIEventHandler {
-public:
-
-	PickHandler(osg::Node * n,GlbGlobe::GLbKdTree& tree):
-	  _mx(0.0f),
-		  _my(0.0f),
-	  _node(n),
-	  kdtree(tree){}
-
-	  ~PickHandler() {}
-
-	  bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
-	  {
-		  osgViewer::View* view = dynamic_cast<osgViewer::View*>(&aa);
-		  if (!view) return false;
-
-		  switch(ea.getEventType())
-		  {
-		  case(osgGA::GUIEventAdapter::PUSH):
-			  {
-				  _mx = ea.getX();
-				  _my = ea.getY();
-				  break;
-			  }
-		  case(osgGA::GUIEventAdapter::RELEASE):
-			  {
-				  if (_mx==ea.getX() && _my==ea.getY())
-				  {
-					  pick(view, ea);
-				  }
-				  break;
-			  }
-		  default:
-			  break;
-		  }
-		  return false;
-	  }
-
-	  void pick(osgViewer::View* view, const osgGA::GUIEventAdapter& event)
-	  {
-
-		  double _x = _mx;
-		  double _y = _my;
-
-		  _y = view->getCamera()->getViewport()->height() - _y;
-
-		  osg::Vec3d vStart(_x,_y,0.0);
-		  osg::Vec3d vEnd(_x,_y,1.0);	
-
-
-		  osg::Camera* p_camera = view->getCamera();
-		  osg::Matrixd VPW = p_camera->getViewMatrix() *
-			  p_camera->getProjectionMatrix() *
-			  p_camera->getViewport()->computeWindowMatrix();
-		  osg::Matrixd inverseVPW;
-		  inverseVPW.invert(VPW);
-		  vStart = vStart * inverseVPW;
-		  vEnd = vEnd * inverseVPW;
-
-
-		  osg::Timer timer;
-		  osg::Timer_t t1=0,t2=0,t3 = 0;
-
-
-		  osg::Vec3 osgInterP;
-		  osg::Vec3d kdTreeInterP;
-#if 0
-		  osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector = new osgUtil::LineSegmentIntersector(vStart, vEnd);
-		  osgUtil::IntersectionVisitor intersectVisitor( intersector.get());
-
-		  t1 = timer.tick();
-		  _node->accept(intersectVisitor);
-
-		  if(intersector->containsIntersections())
-		  {
-			  osgInterP = intersector->getIntersections().begin()->getWorldIntersectPoint();
-		  }
-		  t2 = timer.tick();
-
-		  //osgTime = osg::Timer::instance()->delta_s(t1,t2);
-		  std::cout<<"OSG Completed in: "<<osg::Timer::instance()->delta_s(t1,t2)<<std::endl;
-		  std::cout << "OSG Point: " << osgInterP.x() << " " << osgInterP.y() << " " << osgInterP.z() << std::endl;
-#endif
-		  t2 = timer.tick();
-
-		 if( kdtree.GetIntersectPoint(vStart,vEnd - vStart,kdTreeInterP))
-		 {
-
-		 }
-		 t3 = timer.tick();
-		 std::cout<<"kdtree Completed in: "<<osg::Timer::instance()->delta_s(t2,t3)<<std::endl;
-		 std::cout << "kdtree Point: " << kdTreeInterP.x() << " " << kdTreeInterP.y() << " " << kdTreeInterP.z() << std::endl;
-	  }
-
-	  float _mx, _my;
-	  osg::Node * _node;
-	  GlbGlobe::GLbKdTree& kdtree;
-
-};
-
-
-int main()
+//AABB
+static double get_enter_distance(const osg::BoundingBox &box, const GlbGlobe::Ray &r)
 {
+	double enter_distance = -1e100; 
+	for (int i = 0; i < 3; i++)
+	{
+		double dist;
+		if (r.direction[i] > kdTreeEpsilon)
+			dist = (box._min[i] - r.origin[i]) / r.direction[i];
+		else if (r.direction[i] < -kdTreeEpsilon)
+			dist = (box._max[i] - r.origin[i]) / r.direction[i];
+		else 
+			continue;
 
-	osgViewer::Viewer viewer;
-	viewer.addEventHandler(new osgViewer::StatsHandler);
-
-	osg::ref_ptr<osg::Group> root = new osg::Group;
-
-#if 1
-	std::string meshFileName = "D:/OpenSceneGraph-Data/objs/bunny.osg";
-	osg::ref_ptr<osg::Node> sponaza = osgDB::readNodeFile(meshFileName);
-	osg::Drawable * drawable = sponaza->asGroup()->getChild(0)->asGeode()->getDrawable(0);
-#else
-	osg::ref_ptr<osg::Node> sponaza = openGLBox(osg::Vec3(0.0,0.0,0.0),osg::Vec3(2,4,5));
-	osg::Drawable * drawable = sponaza->asGeode()->getDrawable(0);
-#endif
-	GlbGlobe::GLbKdTree kdtree(false);
-
-	unsigned int num = kdtree.GetMeshTriangleAndVertexs(drawable);
-
-	kdtree.ConstructKdTree(num,drawable->getBound());
-
-	root->addChild(sponaza);
-
-	viewer.setSceneData(root);
-
-	viewer.addEventHandler(new PickHandler(root,kdtree));
-
-	viewer.run();
-
-	return 0;
+		if (dist > enter_distance) //»˝∏ˆ÷·œÚ◊Ó∂Ãæ‡¿Î
+			enter_distance = dist;
+	}
+	return enter_distance;
 }
 
-//task_scheduler_init init(task_scheduler_init::deferred);
+//AABB
+static double get_exit_distance(const osg::BoundingBox &box, const GlbGlobe::Ray &r) 
+{
+	double exit_distance = 1e100;
+	for (int i = 0; i < 3; i++) 
+	{
+		double dist;
+		if (r.direction[i] > kdTreeEpsilon)
+			dist = (box._max[i] - r.origin[i]) / r.direction[i];
+		else if (r.direction[i] < -kdTreeEpsilon)
+			dist = (box._min[i] - r.origin[i]) / r.direction[i];
+		else
+			continue;
 
- 
+		if (dist < exit_distance)
+			exit_distance = dist;
+	}
+	return exit_distance;
+}
+
+
+bool  GlbGlobe::GLbKdTree::RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3&intersectionP)
+{
+	if(!node->is_leaf())
+	{
+		const KDTNodeM * leaf = node->backtrack_leaf(ray.origin);
+		if(leaf == NULL)
+			return false;
+		else
+			return RayTravAlgSEQ(leaf,ray,intersectionP);
+	}
+	else
+	{
+		Ray r(ray); //tmp
+
+		const unsigned int *trIndices = node->tri_indices;
+
+        double bestT = INFINITYM;
+
+		for (unsigned int i = 0; i < node->num_tris; i++) 
+		{
+			Triangle &tri = meshTriangles[trIndices[i]];
+            double t = -1.0;
+            double u = 0.0;
+            double v = 0.0;
+
+            if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],tri.vertex[1],tri.vertex[2],t,u,v))
+            {
+                if(t < bestT)
+                {
+                    bestT = t;
+                    intersectionP =   tri.vertex[0] * (1 - u - v) +
+                                      tri.vertex[1] * u+
+                                      tri.vertex[2] * v;
+                }
+            }
+		}
+        if(bestT != INFINITYM) return  true;
+
+		/* no intersection found */
+		double exit_distance = get_exit_distance(node->box, ray);
+		r.origin = r.origin +  r.direction * (exit_distance + RayEpsilonOffset) ;
+
+		return RayTravAlgSEQ(node->parent,r,intersectionP);
+	}
+}
+
+bool GlbGlobe::GLbKdTree::RayTracer(const Ray&ray,Vec3&intersectionP)
+{
+#ifndef KDTREE_NEIGHBORLINKS
+	{
+		// sah ∫Õ media space∂º√ª”– π”√
+		if(!treeRoot && !treeRootM ) return false;
+
+        if(sahUse)
+        {
+            return RayTravAlgRECA(treeRoot,ray,intersectionP);
+        }
+        else
+        {
+            const BoundingBox& bound = treeRootM->box;
+
+            Ray r(ray);
+            
+            if(!bound.contains(ray.origin,kdTreeEpsilon))
+            {
+                double enter_distance = get_enter_distance(bound, ray);
+                double exit_distance  = get_exit_distance(bound, ray);
+
+                if (enter_distance > exit_distance)
+                    return false;
+                else
+                    r.origin = r.origin +  r.direction * (enter_distance + RayEpsilonOffset);
+            }
+
+            RayTravAlgSEQ(treeRootM,r,intersectionP);
+        }
+
+	}
+#else
+	{
+		return false;
+	}
+#endif
+
+}
+
+ bool GlbGlobe::GLbKdTree:: RayTravAlgRECA(const KDTNode* node,const Ray& ray,Vec3&intersectionP)
+ {
+    double a = 0.0; //entry point signed distances
+    double b = 0.0; //exit point signed  distances
+
+    double t ; // signed distance to the splitting plane
+
+    a = get_enter_distance(node->box, ray);
+    b = get_exit_distance(node->box, ray);
+
+    return  true;
+
+ }
