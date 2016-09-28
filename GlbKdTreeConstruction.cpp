@@ -34,7 +34,7 @@ KDTNodeM* GLbKdTree::constructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 #endif
 	currentNode->num_tris = num_tris;
 
-	if ( true ) 
+	if ( false ) 
 	{
 		currentNode->box = computeTightFittingBoundingBox( num_tris ,tri_indices);
 	}
@@ -126,7 +126,7 @@ KDTNodeM* GLbKdTree::constructTreeMedianSpaceSplit(unsigned int num_tris,unsigne
 		}
 
 
-		if ( min_tri_val < median_val )
+		if ( min_tri_val <= median_val )
 		{
 			temp_left_tri_indices[i] = tri_indices[i];
 			++left_tri_count;

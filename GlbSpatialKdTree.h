@@ -237,7 +237,7 @@ namespace GlbGlobe
 		bool ConstructKdTree(unsigned int num_tris,const BoundingBox&bounds);
 
 		/* ray tracer */
-		bool RayTracer(const Ray&ray,Vec3&intersectionP);
+		bool RayTracer(const Ray&ray,Vec3&intersectionP, int  t);
 
 		const Triangle * getMeshTriangles(void)const;
 	protected:

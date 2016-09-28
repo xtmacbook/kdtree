@@ -310,7 +310,7 @@ const KDTNodeM * KDTNodeM::find_leaf(const Vec3 &point) const
 	{
 		return this;
 	}
-	else if (point[splitEdge->axis] < splitEdge->splitPlanePosition)
+	else if (point[splitEdge->axis] <= splitEdge->splitPlanePosition)
 	{
 		return left->find_leaf(point);
 	}

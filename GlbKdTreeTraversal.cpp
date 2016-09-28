@@ -56,8 +56,8 @@ static const GlbGlobe::KDTNodeM* LocateLeaf(const const GlbGlobe::KDTNodeM* node
 	{
 		GlbGlobe::Axes axis = currNode->splitEdge->axis;
 
-		if(point[axis]  < currNode->right->box._min[axis])
-			//if(point[axis]  < currNode->splitEdge->splitPlanePosition)
+		//if(point[axis]  < currNode->right->box._min[axis])
+		if(point[axis]  < currNode->splitEdge->splitPlanePosition)
 		{
 			currNode = currNode->left;
 		}
@@ -129,6 +129,8 @@ static bool stackLessNeighLink(GlbGlobe::KDTNodeM*node,const GlbGlobe::Ray& ray,
 			return false;
 		}
 	}
+
+	return intersection;
 }
 
 /* Sequential ray traversal algorithm
@@ -168,7 +170,7 @@ static bool RayTravAlgSEQ(const T*rootNode, const GlbGlobe::Ray&ray,GlbGlobe::Ve
 		if(RayAABB(currentNode->box._min,currentNode->box._max,ray.origin,
 			ray.direction,a,b))
 		{
-			if(currentNode->treeLeafTrace(ray,intersectionP))
+			if(currentNode->treeLeafTrace(ray,intersectionP,localKdTreePtr))
 				return true;
 		}
 		point = ray.origin + ray.direction * (b + 0.0001);
@@ -270,7 +272,8 @@ static bool RayTravAlgRECA(const GlbGlobe::KDTNodeM* node,const GlbGlobe::Ray& r
 		while(!currNode->is_leaf())
 		{
 			const GlbGlobe::BoxEdge * splitting = currNode->splitEdge;
-			double diff = currNode->right->box._min[splitting->axis] - ray.origin[splitting->axis];
+			//double diff = currNode->right->box._min[splitting->axis] - ray.origin[splitting->axis];
+			double diff = splitting->splitPlanePosition - ray.origin[splitting->axis];
 
 			t = diff / ray.direction[splitting->axis];
 
@@ -460,57 +463,62 @@ static bool RayTravAlgRECB(const T * node,const GlbGlobe::Ray&ray,GlbGlobe::Vec3
 	return false;
 }
 
-bool GlbGlobe::GLbKdTree::RayTracer(const Ray&r,Vec3&intersectionP)
+bool GlbGlobe::GLbKdTree::RayTracer(const Ray&r,Vec3&intersectionP,int t)
 {
 	if(!sahUse)
 	{
 		const BoundingBox& bound = treeRootM->box;
 		Ray ray(r);
-
-#if 0
-		/*parent node traversal*/
-		if(!bound.contains(ray.origin,KDTREE_BOX_CONTAIN_EPSILON))
+		if(t == 0)
 		{
-			double enter_distance = get_enter_distance(bound, ray);
-			double exit_distance  = get_exit_distance(bound, ray);
+			/*parent node traversal*/
+			if(!bound.contains(ray.origin,0.00000001))
+			{
+				double enter_distance = get_enter_distance(bound, ray);
+				double exit_distance  = get_exit_distance(bound, ray);
 
-			if (enter_distance > exit_distance) return false;
-			else ray.origin = ray.origin +  ray.direction * (enter_distance + RAY_EPSILON_OFFSET);
+				if (enter_distance > exit_distance) return false;
+				else ray.origin = ray.origin +  ray.direction * (enter_distance + RAY_EPSILON_OFFSET);
+			}
+			
+			localKdTreePtr = this;
+			return RayTravParent(treeRootM,ray,intersectionP);
 		}
-		localKdTreePtr = this;
-		return RayTravParent(treeRootM,ray,intersectionP);
-#endif
-#if 0
-		// NeightLink
-		double t_near,t_far;
-		bool intersects_root_node_bounding_box = RayAABB(bound._min, bound._max,ray.origin ,ray.direction, t_near, t_far);
-		if ( intersects_root_node_bounding_box )
+ 
+		if(t == 1)
+		  {
+			// NeightLink
+			double t_near,t_far;
+			if ( RayAABB(bound._min, bound._max,ray.origin ,ray.direction, t_near, t_far) )
+			{
+				localKdTreePtr = this;
+
+				if ( stackLessNeighLink( treeRootM, ray, t_near, t_far ) )
+				{
+					intersectionP = ray.origin  + ( ray.direction * t_far );
+					return true;
+				}
+			}
+			return false;
+		  }
+ 
+		if(t == 2)
 		{
 			localKdTreePtr = this;
-			bool hit = stackLessNeighLink( treeRootM, ray, t_near, t_far );
-			if ( hit )
-			{
-				intersectionP = ray.origin  + ( ray.direction * t_far );
-			}
-			return hit;
+			return RayTravAlgSEQ(treeRootM,ray,intersectionP);
 		}
-		else
+	
+		if(t == 3)
 		{
-			return false;
+			localKdTreePtr = this;
+			return RayTravAlgRECA(treeRootM,ray,intersectionP);
 		}
-#endif
-#if 0
-		localKdTreePtr = this;
-		return RayTravAlgSEQ(treeRootM,ray,intersectionP);
-#endif 
-#if 0
-		localKdTreePtr = this;
-		return RayTravAlgRECA(treeRootM,ray,intersectionP);
-#endif
-#if 1
-		localKdTreePtr = this;
-		RayTravAlgRECB(treeRootM,ray,intersectionP);
-#endif
+		
+		if(t == 4)
+		{
+			localKdTreePtr = this;
+			RayTravAlgRECB(treeRootM,ray,intersectionP);
+		}
 	}
 	else
 	{
