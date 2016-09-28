@@ -262,7 +262,7 @@ const bool KDTNodeM::isPointToLeftOfSplittingPlane(const Vec3&p)const
 KDTNodeM* KDTNodeM::getNeighboringNode(const Vec3&p)const
 {
 #ifdef KDTREE_NEIGHBORLINKS
-	// Check left face.
+	 
 	if ( fabs( p.x() - box._min.x() ) < KD_TREE_EPSILON )
 	{
 		return ropes[FLeft];

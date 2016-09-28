@@ -3,6 +3,25 @@
 
 using namespace GlbGlobe;
 
+//两三角形是否共面
+static bool towTrianglecoplanar(const GlbGlobe::Vec3&A0,const GlbGlobe::Vec3&A1,const GlbGlobe::Vec3&A2,
+								const GlbGlobe::Vec3&B0,const GlbGlobe::Vec3&B1,const GlbGlobe::Vec3&B2)
+{
+	GlbGlobe::Vec3 U = A1 - A0; //A
+	GlbGlobe::Vec3 V = A2 - A0;
+
+	GlbGlobe::Vec3 S = B1 - B0; //P
+	GlbGlobe::Vec3 T = B2 - B0;
+
+	GlbGlobe::Vec3 N1 = U ^ V;
+	GlbGlobe::Vec3 N2 = S ^ T;
+
+	if((N1 ^ N2).length2() == 0) return false;
+
+	if((B0 - A0) * N1 == 0) return true;
+
+	return false;
+}
 
 template <typename T>
 static void optimizeRopes(T * ropes[],GlbGlobe::BoundingBox&box)
@@ -235,9 +254,8 @@ KDTNode* GLbKdTree::FindSingleNeighborLink(KDTNode *node, Faces face, KDTNode *r
 	KDTNode *currNode; /* currently accessed node */
 
 	/*if (node->box[face] is coplanar with a face of sceneBox)
-	return ["No neighbor link exists"];
-	*/
-	/* stack required for traversal to store far child nodes */
+		return NULL;*/
+
 	KDTNode *stack[TERMINATION_CRITERIA_D_MAX]; 
 
 	/* search starts from the root node */
@@ -254,7 +272,44 @@ KDTNode* GLbKdTree::FindSingleNeighborLink(KDTNode *node, Faces face, KDTNode *r
 			if(currNode->splitEdge->axis == node->splitEdge->axis)
 			{
 				/*splitting plane 平行于node的一个面*/
-				//if(node)
+				if(node->box.GetExtent(face) < currNode->splitEdge->splitPlanePosition - KD_TREE_EPSILON)
+				{
+					stack[stackIndex++] = currNode->left;
+				}
+				else
+				{
+					if(node->box.GetExtent(face) > currNode->splitEdge->splitPlanePosition - KD_TREE_EPSILON)
+					{
+						stack[stackIndex++] = currNode->right;
+					}
+					else
+					{
+						//splitting plane 在Face里
+						if(/*face is min face of node*/)
+						{
+							stack[stackIndex++] = currNode->left;
+						}
+						else
+						{
+							stack[stackIndex++] = currNode->right;
+						}
+					}
+				}
+			}
+			else
+			{
+				/*is some other axis so test if it splits the face or not */
+				if(node->box._min[currNode->splitEdge->axis] >= currNode->splitEdge->splitPlanePosition)
+				{
+					stack[stackIndex++] = currNode->right;
+				}
+				else
+				{
+					if(node->box._max[currNode->splitEdge->axis] <= currNode->splitEdge->splitPlanePosition)
+					{
+						stack[stackIndex++] = currNode->left;
+					}
+				}
 			}
 		}
 	}
