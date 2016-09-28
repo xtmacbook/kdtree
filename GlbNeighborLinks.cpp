@@ -168,8 +168,11 @@ static void optimizeRopes(T * ropes[],GlbGlobe::BoundingBox&box)
 	}
 }
 
+/*
+	可以参考pdf ,singleRay 为true，创建的neigh link,指向可能为内部节点也可能是叶节点
+*/
 template <typename T>
-static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
+static void buildRopeStructure( T *curr_node, T *rs[], bool singleRay)
 {
 #ifdef KDTREE_NEIGHBORLINKS
 
@@ -182,9 +185,8 @@ static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
 	}
 	else
 	{
-		// Only optimize ropes on single ray case.
-		// It is not optimal to optimize on packet traversal case.
-		if ( is_single_ray_case )
+		
+		if ( singleRay )
 		{
 			optimizeRopes( rs, curr_node->box );
 		}
@@ -217,11 +219,11 @@ static void buildRopeStructure( T *curr_node, T *rs[], bool is_single_ray_case)
 
 		// Recurse.
 		RS_left[SR] = curr_node->right;
-		buildRopeStructure( curr_node->left, RS_left, is_single_ray_case );
+		buildRopeStructure( curr_node->left, RS_left, singleRay );
 
 		// Recurse.
 		RS_right[SL] = curr_node->left;
-		buildRopeStructure( curr_node->right, RS_right, is_single_ray_case );
+		buildRopeStructure( curr_node->right, RS_right, singleRay );
 	}
 
 #endif

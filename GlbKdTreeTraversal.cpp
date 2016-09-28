@@ -403,7 +403,7 @@ static bool RayTravAlgRECB(const T * node,const GlbGlobe::Ray&ray,GlbGlobe::Vec3
 					currNode = currNode->left;
 					continue;
 				}
-				if(stack[exPt].pb[axis] > splitVal)
+				if(stack[exPt].pb[axis] == splitVal)
 				{
 					currNode = currNode->right;
 					continue;
@@ -423,7 +423,7 @@ static bool RayTravAlgRECB(const T * node,const GlbGlobe::Ray&ray,GlbGlobe::Vec3
 				farChild = currNode->left;
 				currNode = currNode->right;
 			}
-
+			//射线原点到splitting plane距离
 			t = (splitVal - ray.origin[axis]) / ray.direction[axis];
 
 			/*设置出点*/
@@ -452,7 +452,7 @@ static bool RayTravAlgRECB(const T * node,const GlbGlobe::Ray&ray,GlbGlobe::Vec3
 				return true;
 		}
 
-		//pop from the stack
+		//从堆栈弹出
 		enPt = exPt;
 		currNode = stack[exPt].node;
 
@@ -517,7 +517,7 @@ bool GlbGlobe::GLbKdTree::RayTracer(const Ray&r,Vec3&intersectionP,int t)
 		if(t == 4)
 		{
 			localKdTreePtr = this;
-			RayTravAlgRECB(treeRootM,ray,intersectionP);
+			return RayTravAlgRECB(treeRootM,ray,intersectionP);
 		}
 	}
 	else
