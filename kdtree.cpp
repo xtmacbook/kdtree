@@ -12,7 +12,7 @@ static double get_enter_distance(const osg::BoundingBox &box, const GlbGlobe::Ra
 	double enter_distance = -1e100; 
 	for (int i = 0; i < 3; i++)
 	{
-		double dist;
+		double dist; 
 		if (r.direction[i] > kdTreeEpsilon)
 			dist = (box._min[i] - r.origin[i]) / r.direction[i];
 		else if (r.direction[i] < -kdTreeEpsilon)
