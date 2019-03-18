@@ -70,7 +70,7 @@ bool  GlbGlobe::GLbKdTree::RayTravAlgSEQ(const KDTNodeM*node, const Ray&ray,Vec3
 			Triangle &tri = meshTriangles[trIndices[i]];
             double t = -1.0;
             double u = 0.0;
-            double v = 0.0;
+            double v = 0.0; 
 
             if(RayTriangleIntersect(ray.origin,ray.direction,tri.vertex[0],tri.vertex[1],tri.vertex[2],t,u,v))
             {
